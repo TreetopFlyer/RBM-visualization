@@ -10,14 +10,25 @@
         <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans:400,300,700|Sorts+Mill+Goudy'>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
         <style>
+.container
+{
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+}
 .Plot
 {
     position:absolute;
     width:500px;
     height:500px;
+    perspective: 500px;
+    transform-style: preserve-3d;
 
     border:1px solid #000;
     margin:100px;
+
 }
 .Point
 {
@@ -68,7 +79,7 @@
 {
     position:absolute;
     top:50px;
-    left:600px;
+    left:650px;
 }
 .Bar
 {
@@ -84,12 +95,22 @@
     -1px 1px 0 #fff,
      1px 1px 0 #fff;
 }
+.Slider
+{
+    position:relative;
+    width:600px;
+    height:30px;
+    background:#ddd;
+}
         </style>
 
     </head>
     <body>
-        <div class="contianer" ng-app="App" ng-controller="AppController" ng-cloak>
+        <div class="container" ng-app="App" ng-controller="AppController" ng-cloak>
             <button class="btn btn-default" ng-click="Train();">Train</button>
+            <div class="Slider" ng-drag="MouseDrag" ng-drag-h="Mouse">
+                <div style="position:absolute; top:0; left:0; width:{{Mouse*100}}%; height:100%; background:#000;"></div>
+            </div>
             <ul class="Sample">
                 <li class="Bar" ng-repeat="value in Sample track by $index" style="width:{{value*500}}">{{value}}</li>
             </ul>
@@ -132,8 +153,21 @@
 <script>
 
     // disable noise
+    /*
     RBM.Bool = function(inData){
         return inData;
+    };
+    */
+
+    RBM.Observe = function(inRBM, inData, inIterations)
+    {
+        var i;
+        var obs = M.Pad(M.Clone(inData));
+        for(i=0; i<inIterations; i++)
+        {
+            obs = RBM.Back( inRBM, (RBM.Out(inRBM, obs)) ); 
+        }
+        return M.Unpad(obs);
     };
 
 
@@ -153,23 +187,95 @@
     var global;
 
     var App = angular.module("App", []);
+    App.directive("ngDrag", ["$document", "$parse", function($document, $parse)
+    {
+        var obj = {};
+        obj.link = function(inScope, inElement, inAttributes)
+        {
+            var linker = {};
+
+            linker.element = inElement;
+            linker.minH = 0;
+            linker.maxH = 1;
+            linker.minV = 0;
+            linker.maxV = 1;
+            linker.clip = function(inValue, inMin, inMax)
+            {
+                if(inValue < inMin)
+                {
+                    return inMin;
+                }
+                if(inValue > inMax)
+                {
+                    return inMax;
+                }
+                return inValue;
+            };
+            linker.handlerMove = function($event)
+            {
+                //coords of AABB within browser window
+                var rect = inElement[0].getBoundingClientRect();
+
+                //$event.client is the coords of the mouse within the browser window
+                var mouseRect = {
+                    x:linker.clip($event.clientX - rect.left, 0, rect.width),
+                    y:linker.clip($event.clientY - rect.top, 0, rect.height)
+                };
+
+                var mouseRelative = {
+                    x:mouseRect.x/rect.width,
+                    y:mouseRect.y/rect.height
+                };
+
+                inScope[inAttributes.ngDragH] = mouseRelative.x;
+                inScope[inAttributes.ngDragV] = mouseRelative.y;
+                var customHandler = $parse(inScope[inAttributes.ngDrag]);
+                customHandler(mouseRelative);
+                inScope.$apply();
+            };
+
+            linker.handlerDown = function($event)
+            {
+                $document.bind("mousemove", linker.handlerMove);
+                $document.bind("mouseup", linker.handlerUp);
+                linker.handlerMove($event);
+            };
+
+            linker.handlerUp = function($event)
+            {
+                 $document.unbind("mousemove", linker.handlerMove);
+                 $document.unbind("mouseup", linker.handlerUp);
+            };
+
+            inElement.bind("mousedown", linker.handlerDown);
+        };
+        return obj;
+    }]);
     App.controller("AppController", ["$scope", function($scope){
 
         $scope.RBM = RBM.Create(2, 10);
-        $scope.Iterations = 10;
+        $scope.Iterations = 20;
+        $scope.IterationsMax = 50;
+
+        $scope.Mouse = $scope.Iterations / $scope.IterationsMax;
+        $scope.MouseDrag = function(inData){
+            $scope.Iterations = Math.floor(inData.x*$scope.IterationsMax);
+            $scope.Update();
+        };
 
         var plots = [];
-        plots.push( M.Circle([0.2, 0.2], 0.3, 0.3, 50) );
-        plots.push( M.Circle([0.5, 0.5], 0.3, 0.3, 50) );
-        plots.push( M.Circle([0.2, 0.8], 0.3, 0.3, 50) );
-        plots.push( M.Circle([0.8, 0.2], 0.3, 0.3, 50) );
+        plots.push( M.Circle([0.2, 0.2], 0.3, 0.2, 50) );
+        plots.push( M.Circle([0.5, 0.5], 0.3, 0.1, 50) );
+        plots.push( M.Circle([0.2, 0.8], 0.3, 0.1, 50) );
+        plots.push( M.Circle([0.8, 0.2], 0.3, 0.1, 50) );
+
 
         $scope.TrainingSet = M.Combine(plots);
         $scope.LabelSet = false;
         $scope.FabricationSet = false;
         $scope.GridSet = [];
-
-        
+        $scope.Sample = [0, 0, 0];
+        $scope.Fabrication = [0, 0, 0];
 
         var cellCount = 20;
         var i, j;
@@ -185,7 +291,6 @@
         {
             if(!$scope.LabelSet)
                 return 0;
-
             return Math.floor(($scope.LabelSet[inIndex][inColor])*255);
         };
         $scope.MouseMove = function(inEvent)
@@ -195,22 +300,21 @@
             coords.push( (inEvent.clientX - rect.left)/500 );
             coords.push( (inEvent.clientY - rect.top)/500 );
             coords.push( 1 );
-
             $scope.Sample = RBM.Label($scope.RBM, [coords], $scope.iterations)[0];
             $scope.Fabrication = RBM.Observe($scope.RBM, [coords], $scope.Iterations)[0];
         };
-        $scope.Sample = [0, 0, 0];
-        $scope.Fabrication = [0, 0, 0];
-
         $scope.Train = function()
         {
-            RBM.Train($scope.RBM, $scope.TrainingSet, 100, 1, 0.01);
+            RBM.Train($scope.RBM, $scope.TrainingSet, 100, 1, 0.001);
+            $scope.Update();
+        };
+        $scope.Update = function()
+        {
             $scope.LabelSet = RBM.Label($scope.RBM, $scope.GridSet, $scope.Iterations);
             $scope.FabricationSet = RBM.Observe($scope.RBM, $scope.TrainingSet, $scope.Iterations);
         };
 
         global = $scope.RBM;
-
     }]);
 </script>
     </body>

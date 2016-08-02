@@ -20,7 +20,6 @@
 }
 .Plot
 {
-    position:absolute;
     width:500px;
     height:500px;
     perspective: 500px;
@@ -77,9 +76,7 @@
 
 .Sample
 {
-    position:absolute;
-    top:50px;
-    left:650px;
+    position:relative;
 }
 .Bar
 {
@@ -102,50 +99,74 @@
     height:30px;
     background:#ddd;
 }
+td
+{
+    padding:20px;
+}
         </style>
 
     </head>
     <body>
         <div class="container" ng-app="App" ng-controller="AppController" ng-cloak>
-            <button class="btn btn-default" ng-click="Train();">Train</button>
-            <div class="Slider" ng-drag="MouseDrag" ng-drag-h="Mouse">
-                <div style="position:absolute; top:0; left:0; width:{{Mouse*100}}%; height:100%; background:#000;"></div>
+            <div class="row">
+                <div class="col-xs-6">
+                    <button class="btn btn-default" ng-click="Train();">Train</button>
+                    <div class="Slider" ng-drag="MouseDrag" ng-drag-h="Mouse">
+                        <div style="position:absolute; top:0; left:0; width:{{Mouse*100}}%; height:100%; background:#000;"></div>
+                    </div>
+                </div>
             </div>
-            <ul class="Sample">
-                <li class="Bar" ng-repeat="value in Sample track by $index" style="width:{{value*500}}">{{value}}</li>
-            </ul>
-            <div class="Plot Train" ng-mousemove="MouseMove($event);">
-
-                <div
-                    class="Point Grid"
-                    ng-repeat="vector in GridSet track by $index"
-                    style="left:{{vector[0]*100}}%; top:{{vector[1]*100}}%;">
-                    <span style="background-color:rgb({{GetColor($index, 0)}}, {{GetColor($index, 1)}}, {{GetColor($index, 2)}});">
-                    </span>
-                </div>
-
-                <div
-                    class="Point Train"
-                    ng-repeat="vector in TrainingSet track by $index"
-                    style="left:{{vector[0]*100}}%; top:{{vector[1]*100}}%;">
-                    <span></span>
-                </div>
-
-                <div
-                    class="Point Fabrication"
-                    ng-repeat="vector in FabricationSet track by $index"
-                    style="left:{{vector[0]*100}}%; top:{{vector[1]*100}}%;">
-                    <span></span>
-                </div>
-
-                <div
-                    class="Point Fabrication Sample"
-                    style="left:{{Fabrication[0]*100}}%; top:{{Fabrication[1]*100}}%;">
-                    <span></span>
-                </div>
-
+            <div class="row">
+                <div class="col-xs-6">
                 
+                    <div class="Plot Train" ng-mousemove="MouseMove($event);">
+                        <div
+                            class="Point Grid"
+                            ng-repeat="vector in GridSet track by $index"
+                            style="left:{{vector[0]*100}}%; top:{{vector[1]*100}}%;">
+                            <span style="
+                            background-color:rgb({{GetColor($index, 0)}}, {{GetColor($index, 1)}}, {{GetColor($index, 2)}});
+                            border-left:2px solid rgb({{GetColor($index, 3)}}, {{GetColor($index, 4)}}, {{GetColor($index, 5)}});
+                            border-bottom:2px solid rgb({{GetColor($index, 6)}}, {{GetColor($index, 7)}}, {{GetColor($index, 8)}});">
+                            </span>
+                        </div>
+
+                        <div
+                            class="Point Train"
+                            ng-repeat="vector in TrainingSet track by $index"
+                            style="left:{{vector[0]*100}}%; top:{{vector[1]*100}}%;">
+                            <span></span>
+                        </div>
+
+                        <div
+                            class="Point Fabrication"
+                            ng-repeat="vector in FabricationSet track by $index"
+                            style="left:{{vector[0]*100}}%; top:{{vector[1]*100}}%;">
+                            <span></span>
+                        </div>
+
+                        <div
+                            class="Point Fabrication Sample"
+                            style="left:{{Fabrication[0]*100}}%; top:{{Fabrication[1]*100}}%;">
+                            <span></span>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="col-xs-6">
+                    <ul class="Sample">
+                        <li class="Bar" ng-repeat="value in Sample track by $index" style="width:{{value*500}}">{{value}}</li>
+                    </ul>
+                    <table>
+                        <tr ng-repeat="row in RBM.MatrixForward track by $index">
+                            <td ng-repeat="cell in row track by $index">
+                                {{cell | number: 3}}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
             </div>
+
         </div>
 <script>
 
@@ -251,9 +272,10 @@
         };
         return obj;
     }]);
+
     App.controller("AppController", ["$scope", function($scope){
 
-        $scope.RBM = RBM.Create(2, 10);
+        $scope.RBM = RBM.Create(2, 9);
         $scope.Iterations = 20;
         $scope.IterationsMax = 50;
 
@@ -263,14 +285,22 @@
             $scope.Update();
         };
 
+        var stretch = [[0, 0], [1, 1]];
         var plots = [];
-        plots.push( M.Circle([0.2, 0.2], 0.3, 0.2, 50) );
-        plots.push( M.Circle([0.5, 0.5], 0.3, 0.1, 50) );
-        plots.push( M.Circle([0.2, 0.8], 0.3, 0.1, 50) );
-        plots.push( M.Circle([0.8, 0.2], 0.3, 0.1, 50) );
+        plots.push( M.Circle([0.2, 0.2], 0.25, 0.5, 100) );
+        /*
+        plots.push( M.Box([[0.2, 0.0], [1.0, 0.2]], 200) );
+        plots.push( M.Box([[0.3, 0.3], [0.5, 0.8]], 200) );
+        */
+        plots.push( M.Circle([0.6, 0.5], 0.25, 0.15, 100) );
+        plots.push( M.Circle([0.2, 0.8], 0.25, 0.15, 100) );
+        
+        plots.push( M.Circle([0.8, 0.8], 0.2, 0.15, 100) );
 
 
-        $scope.TrainingSet = M.Combine(plots);
+
+        $scope.TrainingSet = M.GlobalToLocal(M.Combine(plots), stretch);
+
         $scope.LabelSet = false;
         $scope.FabricationSet = false;
         $scope.GridSet = [];
@@ -305,7 +335,8 @@
         };
         $scope.Train = function()
         {
-            RBM.Train($scope.RBM, $scope.TrainingSet, 100, 1, 0.001);
+            RBM.Train($scope.RBM, $scope.TrainingSet, 1000, 1, 0.001);
+            RBM.Train($scope.RBM, $scope.TrainingSet, 1000, 2, 0.001);
             $scope.Update();
         };
         $scope.Update = function()

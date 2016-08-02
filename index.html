@@ -9,6 +9,10 @@
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"></script>
         <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans:400,300,700|Sorts+Mill+Goudy'>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+        <script src="ngDrag.js"></script>
+        <script src="ngImportCSV.js"></script>
+
         <style>
 .container
 {
@@ -94,14 +98,37 @@
 }
 .Slider
 {
+    display:block;
     position:relative;
-    width:600px;
+    top:0;
+    left:0;
+    width:100%;
     height:30px;
+
+    margin:0;
+    padding:0;
+
+    cursor:pointer;
     background:#ddd;
+}
+.Slider .Bar
+{
+    display:block;
+    position:absolute;
+    height:100%;
+
+    margin:0;
+    padding:0;
+
+    background:#000;
+}
+table
+{
+    width:100%;
 }
 td
 {
-    padding:20px;
+    padding:10px 5px 10px 5px;
 }
         </style>
 
@@ -110,9 +137,10 @@ td
         <div class="container" ng-app="App" ng-controller="AppController" ng-cloak>
             <div class="row">
                 <div class="col-xs-6">
+                    <input type="file" ng-import-csv="File" class="form-control">
                     <button class="btn btn-default" ng-click="Train();">Train</button>
-                    <div class="Slider" ng-drag="MouseDrag" ng-drag-h="Mouse">
-                        <div style="position:absolute; top:0; left:0; width:{{Mouse*100}}%; height:100%; background:#000;"></div>
+                    <div class="Slider" ng-drag ng-drag-handler="MouseDrag" ng-drag-h="Iterations" ng-drag-h-max="IterationsMax">
+                        <div class="Bar" style="width:{{Lerp.Get(0, Iterations, IterationsMax)*100;}}%;"></div>
                     </div>
                 </div>
             </div>
@@ -125,7 +153,7 @@ td
                             ng-repeat="vector in GridSet track by $index"
                             style="left:{{vector[0]*100}}%; top:{{vector[1]*100}}%;">
                             <span style="
-                            background-color:rgb({{GetColor($index, 0)}}, {{GetColor($index, 1)}}, {{GetColor($index, 2)}});
+                            background-color:rgb({{GetColor($index, 0)}}, {{GetColor($index, 1)}}, {{GetColor($index, 2) || 0}});
                             border-left:2px solid rgb({{GetColor($index, 3)}}, {{GetColor($index, 4)}}, {{GetColor($index, 5)}});
                             border-bottom:2px solid rgb({{GetColor($index, 6)}}, {{GetColor($index, 7)}}, {{GetColor($index, 8)}});">
                             </span>
@@ -160,7 +188,12 @@ td
                     <table>
                         <tr ng-repeat="row in RBM.MatrixForward track by $index">
                             <td ng-repeat="cell in row track by $index">
-                                {{cell | number: 3}}
+                                {{RBM.MatrixForward[$parent.$index][$index] | number: 3}}
+
+                                <div class="Slider" ng-drag ng-drag-handler="Update" ng-drag-h="RBM.MatrixForward[$parent.$index][$index]" ng-drag-h-max="4" ng-drag-h-min="-4">
+                                    <div class="Bar" style="width:{{Lerp.Get(-4, RBM.MatrixForward[$parent.$index][$index], 4)*100;}}%;"></div>
+                                </div>
+
                             </td>
                         </tr>
                     </table>
@@ -169,10 +202,6 @@ td
 
         </div>
 <script>
-
-</script>
-<script>
-
     // disable noise
     /*
     RBM.Bool = function(inData){
@@ -204,108 +233,47 @@ td
 
         return M.Unpad(RBM.Out(inRBM, obs));
     };
+</script>
+<script>
+
 
     var global;
 
-    var App = angular.module("App", []);
-    App.directive("ngDrag", ["$document", "$parse", function($document, $parse)
-    {
-        var obj = {};
-        obj.link = function(inScope, inElement, inAttributes)
-        {
-            var linker = {};
+    var App = angular.module("App", ["ngDrag", "ngImportCSV"]);
 
-            linker.element = inElement;
-            linker.minH = 0;
-            linker.maxH = 1;
-            linker.minV = 0;
-            linker.maxV = 1;
-            linker.clip = function(inValue, inMin, inMax)
-            {
-                if(inValue < inMin)
-                {
-                    return inMin;
-                }
-                if(inValue > inMax)
-                {
-                    return inMax;
-                }
-                return inValue;
-            };
-            linker.handlerMove = function($event)
-            {
-                //coords of AABB within browser window
-                var rect = inElement[0].getBoundingClientRect();
+    App.controller("AppController", ["$scope", "Lerp", function($scope, Lerp){
 
-                //$event.client is the coords of the mouse within the browser window
-                var mouseRect = {
-                    x:linker.clip($event.clientX - rect.left, 0, rect.width),
-                    y:linker.clip($event.clientY - rect.top, 0, rect.height)
-                };
+        $scope.File = {};
 
-                var mouseRelative = {
-                    x:mouseRect.x/rect.width,
-                    y:mouseRect.y/rect.height
-                };
-
-                inScope[inAttributes.ngDragH] = mouseRelative.x;
-                inScope[inAttributes.ngDragV] = mouseRelative.y;
-                var customHandler = $parse(inScope[inAttributes.ngDrag]);
-                customHandler(mouseRelative);
-                inScope.$apply();
-            };
-
-            linker.handlerDown = function($event)
-            {
-                $document.bind("mousemove", linker.handlerMove);
-                $document.bind("mouseup", linker.handlerUp);
-                linker.handlerMove($event);
-            };
-
-            linker.handlerUp = function($event)
-            {
-                 $document.unbind("mousemove", linker.handlerMove);
-                 $document.unbind("mouseup", linker.handlerUp);
-            };
-
-            inElement.bind("mousedown", linker.handlerDown);
-        };
-        return obj;
-    }]);
-
-    App.controller("AppController", ["$scope", function($scope){
-
-        $scope.RBM = RBM.Create(2, 9);
+        $scope.Lerp = Lerp;
+        $scope.RBM = RBM.Create(2, 10);
         $scope.Iterations = 20;
         $scope.IterationsMax = 50;
 
         $scope.Mouse = $scope.Iterations / $scope.IterationsMax;
         $scope.MouseDrag = function(inData){
-            $scope.Iterations = Math.floor(inData.x*$scope.IterationsMax);
+            $scope.Iterations = Math.floor($scope.Iterations);
             $scope.Update();
         };
 
-        var stretch = [[0, 0], [1, 1]];
         var plots = [];
-        plots.push( M.Circle([0.2, 0.2], 0.25, 0.5, 100) );
+        plots.push( M.Circle([0.2, 0.2], 0.25, 0.5, 50) );
         /*
         plots.push( M.Box([[0.2, 0.0], [1.0, 0.2]], 200) );
         plots.push( M.Box([[0.3, 0.3], [0.5, 0.8]], 200) );
         */
-        plots.push( M.Circle([0.6, 0.5], 0.25, 0.15, 100) );
-        plots.push( M.Circle([0.2, 0.8], 0.25, 0.15, 100) );
-        
-        plots.push( M.Circle([0.8, 0.8], 0.2, 0.15, 100) );
+        plots.push( M.Circle([0.6, 0.5], 0.25, 0.15, 50) );
+        plots.push( M.Circle([0.2, 0.8], 0.25, 0.15, 50) );
+        plots.push( M.Circle([0.8, 0.8], 0.2, 0.15, 50) );
 
 
-
-        $scope.TrainingSet = M.GlobalToLocal(M.Combine(plots), stretch);
+        $scope.TrainingSet = M.Combine(plots);
 
         $scope.LabelSet = false;
         $scope.FabricationSet = false;
         $scope.GridSet = [];
-        $scope.Sample = [0, 0, 0];
-        $scope.Fabrication = [0, 0, 0];
+        $scope.Sample = [0, 0, 0, 0, 0];
+        $scope.Fabrication = [0, 0, 0, 0, 0];
 
         var cellCount = 20;
         var i, j;
@@ -313,7 +281,7 @@ td
         {
             for(j=0; j<cellCount; j++)
             {
-                $scope.GridSet.push([i/cellCount, j/cellCount]);
+                $scope.GridSet.push([i/cellCount, j/cellCount, 1, 1]);
             }
         }
 
@@ -330,22 +298,23 @@ td
             coords.push( (inEvent.clientX - rect.left)/500 );
             coords.push( (inEvent.clientY - rect.top)/500 );
             coords.push( 1 );
+
             $scope.Sample = RBM.Label($scope.RBM, [coords], $scope.iterations)[0];
             $scope.Fabrication = RBM.Observe($scope.RBM, [coords], $scope.Iterations)[0];
         };
         $scope.Train = function()
         {
             RBM.Train($scope.RBM, $scope.TrainingSet, 1000, 1, 0.001);
-            RBM.Train($scope.RBM, $scope.TrainingSet, 1000, 2, 0.001);
             $scope.Update();
         };
         $scope.Update = function()
         {
+            $scope.RBM.MatrixBackward = M.Transpose($scope.RBM.MatrixForward);
             $scope.LabelSet = RBM.Label($scope.RBM, $scope.GridSet, $scope.Iterations);
             $scope.FabricationSet = RBM.Observe($scope.RBM, $scope.TrainingSet, $scope.Iterations);
         };
 
-        global = $scope.RBM;
+        global = $scope;
     }]);
 </script>
     </body>

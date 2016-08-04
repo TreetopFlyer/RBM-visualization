@@ -414,6 +414,7 @@ RBM.Label = function(inRBM, inData, inIterations)
 
         $scope.Lerp = Lerp;
         $scope.RBM = RBM.Create(2, 6);
+        $scope.RBM.MatrixForward = [[3.192078686182054,-1.2885701163976064,4.6310052850028605],[3.460664414878386,-2.0298045735617425,5.919086181371204],[-7.034105234491918,0.012011191929844355,6.716925887279692],[-2.803271754777182,4.095635354288954,-4.7750388261296575],[-9.004179064852538,-0.48522803856842756,-0.3579033676778376],[0.18208581863048814,4.988279623450611,-1.3829122318545306],[-0.07431500533491754,-0.3923782528924006,-0.27707441492634305]];
         $scope.Iterations = 20;
         $scope.IterationsMax = 50;
 
@@ -426,15 +427,16 @@ RBM.Label = function(inRBM, inData, inIterations)
 
         var plots = [];
         plots.push( M.Circle([0.2, 0.2], 0.25, 0.5, 50) );
+        plots.push( M.Circle([0.2, 0.8], 0.25, 0.15, 50) );
+        plots.push( M.Circle([0.8, 0.8], 0.2, 0.15, 50) );
+        plots.push( M.Circle([0.8, 0.2], 0.25, 0.15, 50) );
         /*
         plots.push( M.Box([[0.2, 0.0], [1.0, 0.2]], 200) );
         plots.push( M.Box([[0.3, 0.3], [0.5, 0.8]], 200) );
         */
         plots.push( M.Circle([0.6, 0.5], 0.25, 0.15, 50) );
-        //plots.push( M.Circle([0.2, 0.8], 0.25, 0.15, 50) );
-        plots.push( M.Circle([0.8, 0.8], 0.2, 0.15, 50) );
-
-
+        
+        
 
         $scope.TrainingSet = M.Combine(plots);
         $scope.GridSet = [];
@@ -483,6 +485,7 @@ RBM.Label = function(inRBM, inData, inIterations)
         };
 
         global = $scope;
+        $scope.Update();
     }]);
 </script>
     </body>

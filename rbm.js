@@ -52,7 +52,7 @@ RBM.Sample = {
             for(i=0; i<inData.length; i++)
             {
                 /* [center coords], radius, pinch, count */
-                inData[i] = M.Circle(inData[i], 0.1, 0.1, 1)[0];
+                inData[i] = M.Circle(inData[i], 0.3, 0.3, 1)[0];
             }
             return inData;
         }
@@ -80,7 +80,6 @@ RBM.HiddenSample = function(inRBM, inData)
 {
     return inRBM.SampleHidden(RBM.HiddenProbability(inRBM, inData));
 };
-
 RBM.VisibleSample = function(inRBM, inData)
 {
     return inRBM.SampleVisible(RBM.VisibleProbability(inRBM, inData));

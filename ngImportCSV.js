@@ -1,5 +1,5 @@
 angular.module("ngImportCSV", [])
-.factory("CSV", [function()
+.factory("ParseCSV", [function()
 {
     return function(inCSV)
     {
@@ -80,7 +80,7 @@ angular.module("ngImportCSV", [])
     };
 
 }])
-.directive("ngImportCsv", ["$parse", "CSV", function($parse, CSV){
+.directive("ngImportCsv", ["$parse", "ParseCSV", function($parse, ParseCSV){
 
     var directive = {};
     directive.ClassActive = "Import";
@@ -124,7 +124,7 @@ angular.module("ngImportCSV", [])
         {
             var reader = new FileReader();
             reader.onload = function(inEvent){
-                var parsedFile = CSV(inEvent.target.result);
+                var parsedFile = ParseCSV(inEvent.target.result);
                 var setter = $parse(inAttributes.ngImportCsv);
 
                 setter(inScope)(parsedFile)

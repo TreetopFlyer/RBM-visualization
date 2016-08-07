@@ -52,7 +52,7 @@ RBM.Sample = {
         for(i=0; i<inData.length; i++)
         {
             /* [center coords], radius, pinch, count */
-            inData[i] = M.Circle(inData[i], 0.5, 0.5, 1)[0];
+            inData[i] = M.Circle(inData[i], 1, 0.2, 1)[0];
         }
         return inData;
     }

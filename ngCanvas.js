@@ -1,5 +1,5 @@
 angular.module("ngCanvas", [])
-.directive("ngCanvas", [function()
+.directive("ngCanvas", ["$parse", function($parse)
 {
     var obj = {};
     obj.link = function(inScope, inElement, inAttributes)
@@ -10,6 +10,7 @@ angular.module("ngCanvas", [])
         var getterWrite;
         canvas = inElement[0];
         context = canvas.getContext('2d');
+        context.imageSmoothingEnabled = false;
 
         getterURL = $parse(inAttributes.ngLoad)(inScope);
         if(getterURL)
@@ -39,7 +40,7 @@ angular.module("ngCanvas", [])
     };
     return obj;
 }])
-.facory("Bytes", [function()
+.factory("Bytes", [function()
 {
     var obj = {};
     obj.BytesToVector = function(inBytes)

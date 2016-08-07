@@ -1,100 +1,209 @@
 <!DOCTYPE html>
 <html>
 	<head>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"></script>
-
 		<script src="//treetopflyer.github.com/vcore/lib.js"></script>
-        <script src="//treetopflyer.github.com/rasterizer/lib.js"></script>
-
-        <script src="ngImportCSV.js"></script>
         <script src="rbm.js"></script>
-        
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"></link>
+        <style>
+            *
+            {
+                margin:0;
+                padding:0;
+                border:0;
+                font-family:Arial, Helvetica, sans-serif;
+            }
+            dl
+            {
+                overflow:hidden;
+            }
+            dt
+            {
+
+            }
+            dd
+            {
+                float:left;
+                width:30px;
+            }
+            dd canvas
+            {
+                width:100%;
+                height:auto;
+            }
+        </style>
+
 	</head>
 	<body>
-        
-        
-
-        <img class="ts1 1_1" src="ts2_L_1.png"/>
-        <img class="ts1 1_2" src="ts2_L_2.png"/>
-        <img class="ts1 1_3" src="ts2_L_3.png"/>
-        
-        <img class="ts1 2_1" src="ts2_E_1.png"/>
-        <img class="ts1 2_2" src="ts2_E_2.png"/>
-        <img class="ts1 2_3" src="ts2_E_3.png"/>
-        
-        <img class="ts1 3_1" src="ts1_1_1.png"/>
-        <img class="ts1 3_2" src="ts1_1_2.png"/>
-        <img class="ts1 3_3" src="ts1_1_3.png"/>
-        <img class="ts1 3_4" src="ts1_1_4.png"/>
-        
-        <img class="ts1 4_1" src="ts1_2_1.png"/>
-        <img class="ts1 4_2" src="ts1_2_2.png"/>
-        <img class="ts1 4_3" src="ts1_2_3.png"/>
-        <img class="ts1 4_4" src="ts1_2_4.png"/>
-        
-        <br/>
-        <br/>
-        
-        
-        
-
-        <div ng-app="DatApp" ng-controller="DatAppController">
-            <canvas ng-bake="ts1_2_1.png" ng-callback="GetBytes"></canvas>
+        <div class="container" ng-app="DatApp" ng-controller="DatAppController">
+            <div class="row">
+                <form>
+                    
+                </form>
+            </div>
+            <div class="row">
+                <canvas ng-canvas ng-load="ImageURL" ng-onload="GetBytes" ng-show="false"></canvas>
+                <dl>
+                    <dt><h3>Training Data</h3></dt>
+                    <dd ng-repeat="image in ImagesSlices track by $index">
+                        {{$index}}
+                        <canvas ng-canvas ng-draw-bytes="image"></canvas>
+                    </dd>
+                </dl>
+                <dl>
+                    <dt><h3>Reconstructions</h3></dt>
+                    <dd ng-repeat="image in ImagesLabels track by $index">
+                        {{$index}}
+                        <canvas ng-canvas ng-draw-bytes="image"></canvas>
+                    </dd>
+                </dl>
+                <dl>
+                    <dt><h3>Matrix Weights</h3></dt>
+                    <dd ng-repeat="image in ImagesMatrix">
+                        <canvas ng-canvas ng-draw-bytes="image"></canvas>
+                    </dd>
+                </dl>
+                <button class="btn btn-default" ng-click="Train();">train</button>
+            </div>
         </div>
-
-
-<script>
-var DatApp = angular.module("DatApp", ["ngImportCSV"]);
-DatApp.directive("ngBake", ["$parse", function($parse)
-{
-    var obj = {};
-
-    obj.link = function(inScope, inElement, inAttributes)
-    {   
-        var img;
-        img = new Image();
-        img.onload = function()
-        {
-            var canvas;
-            var context;
-            var setter;
-
-            canvas = inElement[0];
-            canvas.width = img.width;
-            canvas.height = img.height;
-
-            context = canvas.getContext('2d');
-            context.drawImage(img, 0, 0);
-
-            setter = $parse(inAttributes.ngCallback);
-            setter(inScope)(context, canvas);
-        };
-        img.src = inAttributes.ngBake;
-    };
-
-    return obj;
-}]);
-DatApp.controller("DatAppController", ["$scope", function($scope)
-{
-
-    $scope.Clip = [15, 15];
-
-    $scope.GetBytes = function(inContext, inCanvas)
-    {
-        var x, y;
-        for(y=0; y<(inCanvas.height - $scope.Clip[1]); y+= $scope.Clip[1])
-        {
-            for(x=0; x<(inCanvas.width - $scope.Clip[0]); x+= $scope.Clip[0])
+        <script>
+            var DatApp = angular.module("DatApp", []);
+            DatApp.directive("ngCanvas", ["$parse", function($parse)
             {
-                console.log(x, y, inContext.getImageData(x, y, $scope.Clip[0], $scope.Clip[1]));
-            }
-        }
-    };
+                var obj = {};
+                obj.link = function(inScope, inElement, inAttributes)
+                {   
+                    var canvas;
+                    var context;
+                    var getterURL;
+                    var getterWrite;
+                    canvas = inElement[0];
+                    context = canvas.getContext('2d');
 
-}]);
-</script>
+                    getterURL = $parse(inAttributes.ngLoad)(inScope);
+                    if(getterURL)
+                    {
+                        var img;
+                        img = new Image();
+                        img.onload = function()
+                        {
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            context.drawImage(img, 0, 0);
 
+                            setter = $parse(inAttributes.ngOnload);
+                            setter(inScope)(context.getImageData(0, 0, canvas.width, canvas.height), context, canvas);
+                            inScope.$apply();
+                        };
+                        img.src = getterURL;
+                    }
+
+                    getterBytes = $parse(inAttributes.ngDrawBytes)(inScope);
+                    if(getterBytes)
+                    {
+                        canvas.width = getterBytes.width;
+                        canvas.height = getterBytes.height;
+                        context.putImageData(getterBytes, 0, 0);
+                    }
+                };
+                return obj;
+            }]);
+            DatApp.controller("DatAppController", ["$scope", function($scope)
+            {
+                $scope.ImageURL = "digits2.png";
+                $scope.Size = [20, 20];
+                $scope.Spacing = [20, 20];
+                $scope.ImagesSlices = [];
+                $scope.ImagesMatrix = [];
+                $scope.SetTraining = [];
+                $scope.SetLabels = [];
+                $scope.GetBytes = function(inBytes, inContext, inCanvas)
+                {
+                    var x, y, b;
+                    for(y=0; y<(inCanvas.height); y+= $scope.Spacing[1])
+                    {
+                        for(x=0; x<(inCanvas.width ); x+= $scope.Spacing[0])
+                        {
+                            if(x + $scope.Size[0] > inCanvas.width || y + $scope.Size[1] > inCanvas.height)
+                            {
+                                continue;
+                            }
+                            b = inContext.getImageData(x, y, $scope.Size[0], $scope.Size[1]);
+                            $scope.ImagesSlices.push(b);
+                            $scope.SetTraining.push($scope.BytesToVector(b));
+                        }
+                    }
+                };
+                $scope.BytesToVector = function(inBytes)
+                {
+                    var out = [];
+                    var i;
+
+                    for(i=0; i<inBytes.data.length; i+=4)
+                    {
+                        out.push(inBytes.data[i]/255);
+                    }
+                    return out;
+                };
+                $scope.VectorToBytes = function(inVector, inWidth, inHeight)
+                {
+                    var data = new Uint8ClampedArray(inWidth*inHeight*4);
+
+                    for(i=0; i<inVector.length; i++)
+                    {
+                        value = inVector[i]*255;
+                        data[(i*4)+0] = value;
+                        data[(i*4)+1] = value;
+                        data[(i*4)+2] = value;
+                        data[(i*4)+3] = 255;
+                    }
+
+                    return new ImageData(data, inWidth, inHeight);
+                };
+
+                function compare(inArray, in1, in2)
+                {
+                    var i;
+                    var delta = [];
+                    for(i=0; i<inArray[in1].length; i++)
+                    {
+                        delta.push(inArray[in1][i] - inArray[in2][i]);
+                    }
+                    return V.Subtract(inArray[in1], inArray[in2]);
+                }
+
+                $scope.Train = function()
+                {
+                    var i;
+                    var crushed;
+                    var popped;
+
+                    RBM.Train($scope.RBM, $scope.SetTraining, 100, 1, 0.05);
+                    popped = M.Unpad(M.Sigmoid(M.Clone($scope.RBM.MatrixForward)));
+                    for(i=0; i<popped.length; i++)
+                    {
+                        $scope.ImagesMatrix[i] = $scope.VectorToBytes(popped[i], $scope.Size[0], $scope.Size[1]);
+                    }
+
+                    /*
+                    console.log( V.Dot( $scope.SetTraining[0], $scope.RBM.MatrixForward[0] ) );
+                    console.log( V.Dot( $scope.SetTraining[11], $scope.RBM.MatrixForward[0] ) );
+                    console.log( V.Dot( $scope.SetTraining[23], $scope.RBM.MatrixForward[0] ) );
+                    */
+                    
+                    $scope.ImagesLabels = RBM.Fabricate($scope.RBM, $scope.SetTraining, 1);
+                    for(i=0; i<$scope.ImagesLabels.length; i++)
+                    {
+                        $scope.ImagesLabels[i] = $scope.VectorToBytes($scope.ImagesLabels[i], 20, 20);
+                    }
+                };
+
+                $scope.RBM = RBM.Create(($scope.Size[0]*$scope.Size[1]), 4);
+                $scope.RBM.SampleHidden = RBM.Sample.Bernoulli;
+                $scope.RBM.SampleVisible = RBM.Sample.Linear;
+                
+
+            }]);
+        </script>
 	</body>
 </html>

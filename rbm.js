@@ -18,8 +18,8 @@ RBM.Create = function(inDimensionsIn, inDimensionsOut)
     obj.MatrixForward = M.Box([min, max], inDimensionsOut);
     obj.MatrixBackward = M.Transpose(obj.MatrixForward);
     
-    obj.SampleHidden = RBM.Sample.Gaussian;
-    obj.SampleVisible = RBM.Sample.Linear;
+    obj.SampleHidden = RBM.Sample.Bernoulli;
+    obj.SampleVisible = RBM.Sample.Gaussian;
 
     return obj;
 };
@@ -27,35 +27,35 @@ RBM.Create = function(inDimensionsIn, inDimensionsOut)
 
 
 RBM.Sample = {
-        Linear:function(inData)
+    Linear:function(inData)
+    {
+        return inData;
+    },
+    Bernoulli:function(inData)
+    {
+        var i, j;
+        for(i=0; i<inData.length; i++)
         {
-            return inData;
-        },
-        Bernoulli:function(inData)
-        {
-            var i, j;
-            for(i=0; i<inData.length; i++)
+            for(j=0; j<inData[i].length; j++)
             {
-                for(j=0; j<inData[i].length; j++)
-                {
-                    var rand = Math.random();
-                    if(inData[i][j] > rand)
-                        inData[i][j] = 1;
-                    else
-                        inData[i][j] = 0;
-                }
+                var rand = Math.random();
+                if(inData[i][j] > rand)
+                    inData[i][j] = 1;
+                else
+                    inData[i][j] = 0;
             }
-            return inData;
-        },
-        Gaussian:function(inData)
-        {
-            for(i=0; i<inData.length; i++)
-            {
-                /* [center coords], radius, pinch, count */
-                inData[i] = M.Circle(inData[i], 0.3, 0.3, 1)[0];
-            }
-            return inData;
         }
+        return inData;
+    },
+    Gaussian:function(inData)
+    {
+        for(i=0; i<inData.length; i++)
+        {
+            /* [center coords], radius, pinch, count */
+            inData[i] = M.Circle(inData[i], 0.5, 0.5, 1)[0];
+        }
+        return inData;
+    }
 };
 
 
@@ -66,12 +66,12 @@ probability functions. inData must be padded.
 //probability of hidden units
 RBM.HiddenProbability = function(inRBM, inData)
 {
-    return  M.Repad( M.Sigmoid(M.Transform(inRBM.MatrixForward, inData)) );
+    return  M.Sigmoid(M.Transform(inRBM.MatrixForward, inData)) ;
 };
 //probability of visible units
 RBM.VisibleProbability = function(inRBM, inData)
 {
-    return  M.Repad( M.Sigmoid(M.Transform(inRBM.MatrixBackward, inData)) );
+    return  M.Sigmoid(M.Transform(inRBM.MatrixBackward, inData)) ;
 };
 
 
@@ -107,9 +107,7 @@ RBM.CD = function(inRBM, inData, inCDN, inRate)
     for(i=0; i<inCDN; i++)
     {
         visibleSample = RBM.VisibleSample(inRBM, hiddenSample);
-
         hiddenSample = RBM.HiddenSample(inRBM, visibleSample);
-
         final = hiddenSample;
     }
 

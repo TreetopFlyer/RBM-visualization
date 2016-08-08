@@ -4,13 +4,12 @@
         <meta charset="UTF-8">
 
         <script src="//treetopflyer.github.com/vcore/lib.js"></script>
-        <!--
-        <script src="//treetopflyer.github.com/RBM/lib.js"></script>
-        -->
+
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"></script>
         <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans:400,300,700|Sorts+Mill+Goudy'>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 
+        <script src="rbm.js"></script>
         <script src="ngDrag.js"></script>
         <script src="ngImportCSV.js"></script>
 
@@ -180,207 +179,6 @@ td.Output
             </div>
         </div>
 
-<script>
-var RBM = {};
-RBM.Create = function(inDimensionsIn, inDimensionsOut)
-{
-    var obj = {};
-    var min = [];
-    var max = [];
-    var i;
-    
-    inDimensionsIn++;
-    inDimensionsOut++;
-
-    for(i=0; i<inDimensionsIn; i++)
-    {
-        min.push(-0.1);
-        max.push(0.1);
-    }
-    
-    obj.MatrixForward = M.Box([min, max], inDimensionsOut);
-    obj.MatrixBackward = M.Transpose(obj.MatrixForward);
-    
-    obj.SampleHidden = RBM.Sample.Linear;
-    obj.SampleVisible = RBM.Sample.Linear;
-
-    return obj;
-};
-
-
-
-RBM.Sample = {
-        Linear:function(inData)
-        {
-            return inData;
-        },
-        Bernoulli:function(inData)
-        {
-            var i, j;
-            for(i=0; i<inData.length; i++)
-            {
-                for(j=0; j<inData[i].length; j++)
-                {
-                    var rand = Math.random();
-                    if(inData[i][j] > rand)
-                        inData[i][j] = 1;
-                    else
-                        inData[i][j] = 0;
-                }
-            }
-            return inData;
-        },
-        Gaussian:function(inData)
-        {
-            for(i=0; i<inData.length; i++)
-            {
-                /* [center coords], radius, pinch, count */
-                inData[i] = M.Circle(inData[i], 0.2, 0.2, 1)[0];
-            }
-            return inData;
-        }
-};
-
-
-
-/*
-probability functions. inData must be padded.
-*/
-//probability of hidden units
-RBM.HiddenProbability = function(inRBM, inData)
-{
-    return  M.Repad( M.Sigmoid(M.Transform(inRBM.MatrixForward, inData)) );
-};
-//probability of visible units
-RBM.VisibleProbability = function(inRBM, inData)
-{
-    return  M.Repad( M.Sigmoid(M.Transform(inRBM.MatrixBackward, inData)) );
-};
-
-
-
-RBM.HiddenSample = function(inRBM, inData)
-{
-    return inRBM.SampleHidden(RBM.HiddenProbability(inRBM, inData));
-};
-
-RBM.VisibleSample = function(inRBM, inData)
-{
-    return inRBM.SampleVisible(RBM.VisibleProbability(inRBM, inData));
-};
-
-
-
-// contrative divergence
-RBM.CD = function(inRBM, inData, inCDN, inRate)
-{
-    var pos;
-    var neg;
-    var i;
-
-    var visibleProbability;
-    var visibleSample;
-    var hiddenProbability;
-    var hiddenSample;
-    var initial;
-    var final;
-
-    hiddenSample = RBM.HiddenSample(inRBM, inData);
-    initial = hiddenSample;
-
-    for(i=0; i<inCDN; i++)
-    {
-        visibleSample = RBM.VisibleSample(inRBM, hiddenSample);
-
-        hiddenSample = RBM.HiddenSample(inRBM, visibleSample);
-
-        final = hiddenSample;
-    }
-
-    for(i=0; i<inData.length; i++)
-    {
-        pos = M.Outer(inData[i], initial[i]);
-        neg = M.Outer(inData[i], final[i]);
-        inRBM.MatrixForward = M.Add(inRBM.MatrixForward, M.Scale(pos, inRate));
-        inRBM.MatrixForward = M.Subtract(inRBM.MatrixForward, M.Scale(neg, inRate));
-    }
-    
-    inRBM.MatrixBackward = M.Transpose(inRBM.MatrixForward);  
-};
-//batch of Contrastive Divergence calls
-RBM.Train = function(inRBM, inData, inIterations, inCDN, inRate)
-{
-    var i;
-    var copy = M.Pad(M.Clone(inData));
-    for(i=0; i<inIterations; i++)
-    {
-        RBM.CD(inRBM, copy, inCDN, inRate);
-    }
-};
-
-
-RBM.Fabricate = function(inRBM, inData, inIterations)
-{
-    var i;
-    var hidden, visible;
-
-    visible = M.Pad(M.Clone(inData));
-    for(i=0; i<inIterations; i++)
-    {
-        hidden = RBM.HiddenProbability(inRBM, visible);
-        visible = RBM.VisibleProbability(inRBM, hidden);
-    }
-    return M.Unpad(visible);
-};
-RBM.Label = function(inRBM, inData, inIterations)
-{
-    var i;
-    var hidden, visible;
-
-    visible = M.Pad(M.Clone(inData));
-    for(i=0; i<inIterations; i++)
-    {
-        hidden = RBM.HiddenProbability(inRBM, visible);
-        visible = RBM.VisibleProbability(inRBM, hidden);
-    }
-    return M.Unpad(RBM.HiddenProbability(inRBM, visible));
-};
-</script>
-
-<!--
-<script>
-
-    RBM.Bool = function(inData){
-        return inData;
-    };
-
-
-    RBM.Observe = function(inRBM, inData, inIterations)
-    {
-        var i;
-        var obs = M.Pad(M.Clone(inData));
-        for(i=0; i<inIterations; i++)
-        {
-            obs = RBM.Back( inRBM, (RBM.Out(inRBM, obs)) ); 
-        }
-        return M.Unpad(obs);
-    };
-
-
-    //iterative labeling
-    RBM.Label = function(inRBM, inData, inIterations)
-    {
-        var i;
-        var obs = M.Pad(M.Clone(inData));
-        for(i=0; i<inIterations; i++)
-        {
-            obs = RBM.Back( inRBM, RBM.Out(inRBM, obs) ); 
-        }
-
-        return M.Unpad(RBM.Out(inRBM, obs));
-    };
-</script>
--->
 
 <script>
     var global;
@@ -390,7 +188,7 @@ RBM.Label = function(inRBM, inData, inIterations)
         $scope.Lerp = Lerp;
         
         $scope.DimentionsIn = undefined;
-        $scope.DimensionsOut = 7;
+        $scope.DimensionsOut = 9;
         $scope.Iterations = 20;
         $scope.IterationsMax = 50;
         
@@ -400,28 +198,26 @@ RBM.Label = function(inRBM, inData, inIterations)
 
         $scope.Setup = function(inModel)
         {
-            
             $scope.Originals = inModel.data;
-
             $scope.Data = M.GlobalToLocal(inModel.data, M.Bounds(inModel.data));
 
             var i, row;
             for(i=0; i<$scope.Data.length; i++)
             {
                 row = $scope.Data[i];
-                row[0] = 0;
+                row[0] = 1;
                 row[1] = 1;
             }
 
-
             $scope.DimentionsIn = $scope.Data[0].length;
-
             $scope.RBM = RBM.Create($scope.DimentionsIn, $scope.DimensionsOut);
+            $scope.RBM.SampleHidden = RBM.Sample.Linear;
+            $scope.RBM.SampleVisible = RBM.Sample.Linear;
         };
 
         $scope.Train = function()
         {
-            RBM.Train($scope.RBM, $scope.Data, 1000, 1, 0.001);
+            RBM.Train($scope.RBM, $scope.Data, 1000, 1, 0.01);
             $scope.Update();
         };
 

@@ -145,7 +145,6 @@ td
             <div class="row">
                 <div class="col-xs-6">
                     <button class="btn btn-default" ng-click="Train();">Train Layer 1</button>
-                    <button class="btn btn-default" ng-click="Train2();">Train Layer 2</button>
                     <div class="Slider Interactive" ng-drag ng-drag-handler="MouseDrag" ng-drag-h="Iterations" ng-drag-h-max="IterationsMax">
                         <div class="Bar" style="width:{{Lerp.Get(0, Iterations, IterationsMax)*100;}}%;"></div>
                         <span>{{Iterations}}</span>
@@ -233,27 +232,10 @@ td
         </div>
 
 <script>
-
-
     var global;
-
     var App = angular.module("App", ["ngDrag", "ngImportCSV"]);
-
-    App.factory("Layer", [function()
+    App.controller("AppController", ["$scope", "Lerp", function($scope, Lerp)
     {
-        var obj = {};
-
-        obj.Create = function(inDimensions, outDimensions)
-        {
-            var layer = {};
-            layer.RBM = RBM.Create(inDimensions, outDimensions);
-        }
-
-        return obj;
-    }]);
-
-    App.controller("AppController", ["$scope", "Lerp", function($scope, Lerp){
-
         $scope.Mouse = $scope.Iterations / $scope.IterationsMax;
         $scope.MouseDrag = function(inData)
         {
@@ -269,23 +251,20 @@ td
             $scope.Colors[inColor] = inIndex;
         };
 
-        $scope.RBMs = [];
-        $scope.RBMs.push(RBM.Create(2, 20));
-        $scope.RBMs.push(RBM.Create(20, 10));
-        $scope.RBMs.push(RBM.Create(10, 2));
-        $scope.RBM = $scope.RBMs[0];
-        
+        $scope.RBM = RBM.Create(2, 8);
+        $scope.RBM.SampleHidden = RBM.Sample.Linear;
+        $scope.RBM.SampleVisible = RBM.Sample.Linear;
 
         var plots = [];
-        plots.push( M.Circle([0.2, 0.2], 0.1, 0.2, 50) );
-        plots.push( M.Circle([0.2, 0.8], 0.1, 0.15, 50) );
-        plots.push( M.Circle([0.8, 0.8], 0.1, 0.15, 50) );
-        plots.push( M.Circle([0.8, 0.2], 0.1, 0.15, 50) );
+        plots.push( M.Circle([0.2, 0.2], 0.3, 0.4, 50) );
+        plots.push( M.Circle([0.2, 0.8], 0.3, 0.4, 50) );
+        plots.push( M.Circle([0.8, 0.8], 0.3, 0.4, 50) );
+        plots.push( M.Circle([0.8, 0.2], 0.3, 0.4, 50) );
         /*
         plots.push( M.Box([[0.2, 0.0], [1.0, 0.2]], 200) );
         plots.push( M.Box([[0.3, 0.3], [0.5, 0.8]], 200) );
         */
-        plots.push( M.Circle([1.5, 0.5], 0.1, 0.15, 100) );
+        plots.push( M.Circle([1.5, 0.5], 0.3, 0.4, 100) );
 
         $scope.TrainingSet = M.Combine(plots);
         $scope.TrainingSet = M.GlobalToLocal($scope.TrainingSet, [[0, 0], [2, 1]]);
@@ -319,42 +298,20 @@ td
             coords.push( (inEvent.clientY - rect.top)/500 );
             coords.push( 1 );
 
-            $scope.LabelSample = RBM.Label($scope.RBMs[0], [coords], $scope.iterations);
-            $scope.LabelSample = RBM.Label($scope.RBMs[1], $scope.LabelSample, $scope.iterations);
-            $scope.LabelSample = RBM.Label($scope.RBMs[2], $scope.LabelSample, $scope.iterations);
-            $scope.LabelSample = $scope.LabelSample[0];
-
+            $scope.LabelSample = RBM.Label($scope.RBM, [coords], $scope.iterations)[0];
             $scope.FabricationSample = RBM.Fabricate($scope.RBM, [coords], $scope.Iterations)[0];
         };
         $scope.Train = function()
         {
-            var labels;
-
-            labels = $scope.TrainingSet;
-
-            RBM.Train($scope.RBMs[0], labels, 2000, 1, 0.005);
-            labels = RBM.Label($scope.RBMs[0], labels, 1);
-
-            RBM.Train($scope.RBMs[1], labels, 2000, 1, 0.005);
-            labels = RBM.Label($scope.RBMs[1], labels, 1);
-
-            RBM.Train($scope.RBMs[2], labels, 2000, 1, 0.005);
-            labels = RBM.Label($scope.RBMs[2], labels, 1);
-
+            RBM.Train($scope.RBM, $scope.TrainingSet, 1000, 1, 0.01);
             $scope.Update();
         };
         
         $scope.Update = function()
         {
             $scope.RBM.MatrixBackward = M.Transpose($scope.RBM.MatrixForward);
-
-            $scope.LabelSet = RBM.Label($scope.RBMs[0], $scope.GridSet, $scope.Iterations);
-            $scope.LabelSet = RBM.Label($scope.RBMs[1], $scope.LabelSet, $scope.Iterations);
-            $scope.LabelSet = RBM.Label($scope.RBMs[2], $scope.LabelSet, $scope.Iterations);
-
-            $scope.FabricationSet = RBM.Fabricate($scope.RBMs[0], $scope.TrainingSet, $scope.Iterations);
-            $scope.FabricationSet = RBM.Fabricate($scope.RBMs[1], $scope.FabricationSet , $scope.Iterations);
-            $scope.FabricationSet = RBM.Fabricate($scope.RBMs[2], $scope.FabricationSet , $scope.Iterations);
+            $scope.LabelSet = RBM.Label($scope.RBM, $scope.GridSet, $scope.Iterations);
+            $scope.FabricationSet = RBM.Fabricate($scope.RBM, $scope.TrainingSet, $scope.Iterations);
         };
 
         global = $scope;

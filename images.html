@@ -29,7 +29,7 @@
             dd
             {
                 float:left;
-                width:30px;
+                width:50px;
             }
             dd canvas
             {
@@ -89,7 +89,7 @@ angular.module("DatApp", ["ngCanvas"])
      \  Slice smaller training samples from a larger image
     */
     $scope.Cuts = {
-        Image: "pictograms.png",
+        Image: "abc.png",
         Size: [20, 20],
         Gap: [0, 0]
     }
@@ -114,8 +114,8 @@ angular.module("DatApp", ["ngCanvas"])
      \  RBM setup
     */
     $scope.Network = {
-        Labels: 4,
-        Visible: RBM.Sample.Linear,
+        Labels: 3,
+        Visible: RBM.Sample.Gaussian,
         Hidden: RBM.Sample.Gaussian,
     };
     $scope.Rebuild = function()
@@ -130,7 +130,7 @@ angular.module("DatApp", ["ngCanvas"])
     */
     $scope.Training = {
         Iterations: 100,
-        Rate: 0.1,
+        Rate: 0.05,
         CDn:1
     };
     $scope.Train = function()

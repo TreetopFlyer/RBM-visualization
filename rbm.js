@@ -52,7 +52,7 @@ RBM.Sample = {
         for(i=0; i<inData.length; i++)
         {
             /* [center coords], radius, pinch, count */
-            inData[i] = M.Circle(inData[i], 1, 0.2, 1)[0];
+            inData[i] = M.Circle(inData[i], 1, 0.3, 1)[0];
         }
         return inData;
     }
@@ -106,15 +106,15 @@ RBM.CD = function(inRBM, inData, inCDN, inRate)
 
     for(i=0; i<inCDN; i++)
     {
-        visibleSample = RBM.VisibleSample(inRBM, hiddenSample);
-        hiddenSample = RBM.HiddenSample(inRBM, visibleSample);
+        visibleSample = RBM.VisibleSample(inRBM, hiddenSample); //v`
+        hiddenSample = RBM.HiddenSample(inRBM, visibleSample); //h`
         final = hiddenSample;
     }
 
     for(i=0; i<inData.length; i++)
     {
         pos = M.Outer(inData[i], initial[i]);
-        neg = M.Outer(inData[i], final[i]);
+        neg = M.Outer(visibleSample[i], hiddenSample[i]);
         inRBM.MatrixForward = M.Add(inRBM.MatrixForward, M.Scale(pos, inRate));
         inRBM.MatrixForward = M.Subtract(inRBM.MatrixForward, M.Scale(neg, inRate));
     }

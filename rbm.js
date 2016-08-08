@@ -66,12 +66,12 @@ probability functions. inData must be padded.
 //probability of hidden units
 RBM.HiddenProbability = function(inRBM, inData)
 {
-    return  M.Sigmoid(M.Transform(inRBM.MatrixForward, inData)) ;
+    return  M.Repad( M.Sigmoid(M.Transform(inRBM.MatrixForward, inData)) );
 };
 //probability of visible units
 RBM.VisibleProbability = function(inRBM, inData)
 {
-    return  M.Sigmoid(M.Transform(inRBM.MatrixBackward, inData)) ;
+    return  M.Repad( M.Sigmoid(M.Transform(inRBM.MatrixBackward, inData)) );
 };
 
 

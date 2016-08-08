@@ -89,7 +89,7 @@ angular.module("DatApp", ["ngCanvas"])
      \  Slice smaller training samples from a larger image
     */
     $scope.Cuts = {
-        Image: "manyDigits.png",
+        Image: "abc.png",
         Size: [20, 20],
         Gap: [0, 0]
     }
@@ -114,9 +114,9 @@ angular.module("DatApp", ["ngCanvas"])
      \  RBM setup
     */
     $scope.Network = {
-        Labels: 10,
+        Labels: 6,
         Visible: RBM.Sample.Gaussian,
-        Hidden: RBM.Sample.Gaussian,
+        Hidden: RBM.Sample.Bernoulli,
     };
     $scope.Rebuild = function()
     {

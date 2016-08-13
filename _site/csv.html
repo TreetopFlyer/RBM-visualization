@@ -201,13 +201,16 @@ td.Output
             $scope.Originals = inModel.data;
             $scope.Data = M.GlobalToLocal(inModel.data, M.Bounds(inModel.data));
 
+            console.log($scope.Data);
+
             var i, row;
             for(i=0; i<$scope.Data.length; i++)
             {
                 row = $scope.Data[i];
                 row[0] = 1;
-                row[1] = 1;
             }
+
+            console.log(JSON.stringify($scope.Data));
 
             $scope.DimentionsIn = $scope.Data[0].length;
             $scope.RBM = RBM.Create($scope.DimentionsIn, $scope.DimensionsOut);

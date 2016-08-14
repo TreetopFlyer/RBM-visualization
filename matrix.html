@@ -13,9 +13,17 @@
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 
         <script src="ngDrag.js"></script>
-        <script src="ngImportCSV.js"></script>
 
         <style>
+body
+{
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+}
 .container
 {
     position:absolute;
@@ -136,6 +144,7 @@ table
 td
 {
     padding:10px 5px 10px 5px;
+    width:30%;
 }
         </style>
 
@@ -144,7 +153,6 @@ td
         <div class="container" ng-app="App" ng-controller="AppController" ng-cloak>
             <div class="row">
                 <div class="col-xs-6">
-                    <button class="btn btn-default" ng-click="Train();">Train Layer 1</button>
                     <div class="Slider Interactive" ng-drag ng-drag-handler="MouseDrag" ng-drag-h="Iterations" ng-drag-h-max="IterationsMax">
                         <div class="Bar" style="width:{{Lerp.Get(0, Iterations, IterationsMax)*100;}}%;"></div>
                         <span>{{Iterations}}</span>
@@ -157,7 +165,7 @@ td
                     <div class="Plot Train" ng-mousemove="MouseMove($event);">
                         <div
                             class="Point Grid"
-                            ng-repeat="vector in GridSet track by $index"
+                            ng-repeat="vector in SetGrid track by $index"
                             style="left:{{vector[0]*100}}%; top:{{vector[1]*100}}%;">
                             <span style="
                             background-color:rgb({{GetColor($index, Colors[0])}}, {{GetColor($index, Colors[1])}}, {{GetColor($index, Colors[2]) || 0}});">
@@ -166,14 +174,14 @@ td
 
                         <div
                             class="Point Train"
-                            ng-repeat="vector in TrainingSet track by $index"
+                            ng-repeat="vector in SetData track by $index"
                             style="left:{{vector[0]*100}}%; top:{{vector[1]*100}}%;">
                             <span></span>
                         </div>
 
                         <div
                             class="Point Fabrication"
-                            ng-repeat="vector in FabricationSet track by $index"
+                            ng-repeat="vector in SetForward track by $index"
                             style="left:{{vector[0]*100}}%; top:{{vector[1]*100}}%;">
                             <span></span>
                         </div>
@@ -217,11 +225,11 @@ td
                     </table>
 
                     <table>
-                        <tr ng-repeat="row in RBM.MatrixForward track by $index">
+                        <tr ng-repeat="row in Matrix track by $index">
                             <td ng-repeat="cell in row track by $index">
-                                {{RBM.MatrixForward[$parent.$index][$index] | number: 3}}
-                                <div class="Slider Interactive" ng-drag ng-drag-handler="Update" ng-drag-h="RBM.MatrixForward[$parent.$index][$index]" ng-drag-h-max="8" ng-drag-h-min="-8">
-                                    <div class="Bar" style="width:{{Lerp.Get(-8, RBM.MatrixForward[$parent.$index][$index], 8)*100;}}%;"></div>
+                                {{Matrix[$parent.$index][$index] | number: 3}}
+                                <div class="Slider Interactive" ng-drag ng-drag-handler="Update" ng-drag-h="Matrix[$parent.$index][$index]" ng-drag-h-max="2" ng-drag-h-min="-2">
+                                    <div class="Bar" style="width:{{Lerp.Get(-2, Matrix[$parent.$index][$index], 2)*100;}}%;"></div>
                                 </div>
                             </td>
                         </tr>
@@ -233,10 +241,9 @@ td
 
 <script>
     var global;
-    var App = angular.module("App", ["ngDrag", "ngImportCSV"]);
+    var App = angular.module("App", ["ngDrag"]);
     App.controller("AppController", ["$scope", "Lerp", function($scope, Lerp)
     {
-
         $scope.Mouse = $scope.Iterations / $scope.IterationsMax;
         $scope.MouseDrag = function(inData)
         {
@@ -251,29 +258,31 @@ td
         {
             $scope.Colors[inColor] = inIndex;
         };
+        $scope.GetColor = function(inIndex, inColor)
+        {
+            if(!$scope.LabelSet)
+                return 0;
+            return Math.floor(($scope.LabelSet[inIndex][inColor])*255);
+        };
 
-        $scope.RBM = RBM.Create(2, 5);
-        $scope.RBM.NoiseHidden = RBM.Noise.None;
-        $scope.RBM.NoiseVisible = RBM.Noise.Gaussian;
+        $scope.Matrix = [
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1]
+        ];
 
         var plots = [];
-        plots.push( M.Circle([0.2, 0.2], 0.3, 0.4, 50) );
-        plots.push( M.Circle([0.2, 0.8], 0.3, 0.4, 50) );
-        plots.push( M.Circle([0.8, 0.8], 0.3, 0.4, 50) );
-        plots.push( M.Circle([0.8, 0.2], 0.3, 0.4, 50) );
-        /*
-        plots.push( M.Box([[0.2, 0.0], [1.0, 0.2]], 200) );
-        plots.push( M.Box([[0.3, 0.3], [0.5, 0.8]], 200) );
-        */
-        plots.push( M.Circle([1.5, 0.5], 0.3, 0.4, 100) );
+        plots.push( M.Circle([0.5, 0.5], 0.2, 1, 50) );
 
-        $scope.TrainingSet = M.Combine(plots);
-        $scope.TrainingSet = M.GlobalToLocal($scope.TrainingSet, [[0, 0], [2, 1]]);
-        $scope.GridSet = [];
-        $scope.LabelSet = false;
-        $scope.FabricationSet = false;
-        $scope.LabelSample = [0, 0, 0, 0, 0];
-        $scope.FabricationSample = [0, 0, 0, 0, 0];
+        $scope.SetData = M.Combine(plots);
+        M.Pad($scope.SetData);
+        $scope.SetGrid = [];
+
+        $scope.SetForward = [];
+        $scope.SetBackward = [];
+
+        $scope.SampleForward = [0, 0, 0, 0, 0];
+        $scope.SampleBackward = [0, 0, 0, 0, 0];
 
         var cellCount = 20;
         var i, j;
@@ -281,38 +290,43 @@ td
         {
             for(j=0; j<cellCount; j++)
             {
-                $scope.GridSet.push([i/cellCount, j/cellCount, 1, 1]);
+                $scope.SetGrid.push([i/cellCount, j/cellCount, 1, 1]);
             }
         }
 
-        $scope.GetColor = function(inIndex, inColor)
-        {
-            if(!$scope.LabelSet)
-                return 0;
-            return Math.floor(($scope.LabelSet[inIndex][inColor])*255);
-        };
+       
         $scope.MouseMove = function(inEvent)
         {
             var rect = inEvent.currentTarget.getBoundingClientRect();
-            var coords = [];
-            coords.push( (inEvent.clientX - rect.left)/500 );
-            coords.push( (inEvent.clientY - rect.top)/500 );
-            coords.push( 1 );
+            var coords = [
+                [(inEvent.clientX - rect.left)/500, (inEvent.clientY - rect.top)/500, 1]
+            ];
 
-            $scope.LabelSample = RBM.Label($scope.RBM, [coords], $scope.iterations)[0];
-            $scope.FabricationSample = RBM.Fabricate($scope.RBM, [coords], $scope.Iterations)[0];
-        };
-        $scope.Train = function()
-        {
-            RBM.Train($scope.RBM, $scope.TrainingSet, 100, 1, 0.001);
-            $scope.Update();
+            $scope.SampleForward = M.Transform($scope.Matrix, coords);
         };
         
         $scope.Update = function()
         {
-            $scope.RBM.MatrixBackward = M.Transpose($scope.RBM.MatrixForward);
-            $scope.LabelSet = RBM.Label($scope.RBM, $scope.GridSet, $scope.Iterations);
-            $scope.FabricationSet = RBM.Fabricate($scope.RBM, $scope.TrainingSet, $scope.Iterations);
+            var forward;
+            var iterations;
+            var transpose = M.Transpose($scope.Matrix);
+
+            iterations = [];
+            data = M.Clone($scope.SetData);
+            var matrix;
+
+            for(i=0; i<$scope.Iterations; i++)
+            {
+                if(i%2 == 0)
+                    matrix = $scope.Matrix;
+                else
+                    matrix = transpose;
+
+                data = M.Transform(matrix, data);
+                iterations.push(data);
+            }
+
+            $scope.SetForward = M.Combine(iterations);
         };
 
         global = $scope;

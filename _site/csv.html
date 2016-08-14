@@ -188,7 +188,7 @@ td.Output
         $scope.Lerp = Lerp;
         
         $scope.DimentionsIn = undefined;
-        $scope.DimensionsOut = 9;
+        $scope.DimensionsOut = 3;
         $scope.Iterations = 20;
         $scope.IterationsMax = 50;
         
@@ -201,8 +201,6 @@ td.Output
             $scope.Originals = inModel.data;
             $scope.Data = M.GlobalToLocal(inModel.data, M.Bounds(inModel.data));
 
-            console.log($scope.Data);
-
             var i, row;
             for(i=0; i<$scope.Data.length; i++)
             {
@@ -210,12 +208,10 @@ td.Output
                 row[0] = 1;
             }
 
-            console.log(JSON.stringify($scope.Data));
-
             $scope.DimentionsIn = $scope.Data[0].length;
             $scope.RBM = RBM.Create($scope.DimentionsIn, $scope.DimensionsOut);
-            $scope.RBM.SampleHidden = RBM.Sample.Linear;
-            $scope.RBM.SampleVisible = RBM.Sample.Linear;
+            $scope.RBM.NoiseHidden = RBM.Noise.None;
+            $scope.RBM.NoiseVisible = RBM.Noise.None;
         };
 
         $scope.Train = function()

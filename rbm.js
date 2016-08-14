@@ -18,16 +18,47 @@ RBM.Create = function(inDimensionsIn, inDimensionsOut)
     obj.MatrixForward = M.Box([min, max], inDimensionsOut);
     obj.MatrixBackward = M.Transpose(obj.MatrixForward);
     
-    obj.SampleHidden = RBM.Sample.Bernoulli;
-    obj.SampleVisible = RBM.Sample.Gaussian;
+    obj.NoiseHidden = RBM.Noise.Bernoulli;
+    obj.NoiseVisible = RBM.Noise.Gaussian;
+
+    obj.DeformHidden = RBM.Deform.Sigmoid;
+    obj.DeformVisible = RBM.Deform.Sigmoid;
 
     return obj;
 };
 
+RBM.Deform = {
+    None:function(inData)
+    {
+        return inData;
+    },
+    Sigmoid:function(inData)
+    {
+        return M.Sigmoid(inData);
+    },
+    ReLU:function(inData)
+    {
+        var out = [];
+        var value;
+        var i, j;
+        for(i=0; i<inData.length; i++)
+        {
+            out.push([]);
+            for(j=0; j<inData[i].length; j++)
+            {
+                value = inData[i][j];
+                if(value > 0)
+                    out[i][j] = value;
+                else
+                    out[i][j] = 0;
+            }
+        }
+        return out;
+    }
+}
 
-
-RBM.Sample = {
-    Linear:function(inData)
+RBM.Noise = {
+    None:function(inData)
     {
         return inData;
     },
@@ -52,7 +83,7 @@ RBM.Sample = {
         for(i=0; i<inData.length; i++)
         {
             /* [center coords], radius, pinch, count */
-            inData[i] = M.Circle(inData[i], 2, 0.3, 1)[0];
+            inData[i] = M.Circle(inData[i], 0.5, 0.2, 1)[0];
         }
         return inData;
     }
@@ -66,23 +97,23 @@ probability functions. inData must be padded.
 //probability of hidden units
 RBM.HiddenProbability = function(inRBM, inData)
 {
-    return  M.Repad( M.Sigmoid(M.Transform(inRBM.MatrixForward, inData)) );
+    return  M.Repad( inRBM.DeformHidden(M.Transform(inRBM.MatrixForward, inData)) );
 };
 //probability of visible units
 RBM.VisibleProbability = function(inRBM, inData)
 {
-    return  M.Repad( M.Sigmoid(M.Transform(inRBM.MatrixBackward, inData)) );
+    return  M.Repad( inRBM.DeformVisible(M.Transform(inRBM.MatrixBackward, inData)) );
 };
 
 
 
 RBM.HiddenSample = function(inRBM, inData)
 {
-    return inRBM.SampleHidden(RBM.HiddenProbability(inRBM, inData));
+    return inRBM.NoiseHidden(RBM.HiddenProbability(inRBM, inData));
 };
 RBM.VisibleSample = function(inRBM, inData)
 {
-    return inRBM.SampleVisible(RBM.VisibleProbability(inRBM, inData));
+    return inRBM.NoiseVisible(RBM.VisibleProbability(inRBM, inData));
 };
 
 

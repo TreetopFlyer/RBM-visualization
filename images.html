@@ -89,7 +89,7 @@ angular.module("DatApp", ["ngCanvas"])
      \  Slice smaller training samples from a larger image
     */
     $scope.Cuts = {
-        Image: "raster/pictograms.png",
+        Image: "raster/pictograms2.png",
         Size: [20, 20],
         Gap: [0, 0]
     }
@@ -114,15 +114,16 @@ angular.module("DatApp", ["ngCanvas"])
      \  RBM setup
     */
     $scope.Network = {
-        Labels: 12,
-        Visible: RBM.Sample.Gaussian,
-        Hidden: RBM.Sample.Bernoulli,
+        Labels: 3,
+        Visible: RBM.Noise.Gaussian,
+        Hidden: RBM.Noise.Bernoulli,
     };
     $scope.Rebuild = function()
     {
         $scope.RBM = RBM.Create($scope.Cuts.Size[0]*$scope.Cuts.Size[1], $scope.Network.Labels);
-        $scope.RBM.SampleHidden = $scope.Network.Hidden;
-        $scope.RBM.SampleVisible = $scope.Network.Visible;
+        $scope.RBM.NoiseHidden = $scope.Network.Hidden;
+        $scope.RBM.NoiseVisible = $scope.Network.Visible;
+        $scope.RBM.DeformVisible = RBM.Deform.ReLU;
     };
 
      /*

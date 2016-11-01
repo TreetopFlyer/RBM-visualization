@@ -83,7 +83,7 @@ RBM.Noise = {
         for(i=0; i<inData.length; i++)
         {
             /* [center coords], radius, pinch, count */
-            inData[i] = M.Circle(inData[i], 0.5, 0.2, 1)[0];
+            inData[i] = M.Circle(inData[i], 0.1, 0.2, 1)[0];
         }
         return inData;
     }
@@ -156,7 +156,21 @@ RBM.CD = function(inRBM, inData, inCDN, inRate)
 RBM.Train = function(inRBM, inData, inIterations, inCDN, inRate)
 {
     var i;
+
+    /*
+    var miniBatch = [];
+    var selection;
+    var size = Math.floor(inData.length*0.3);
+    for(i=0; i<size; i++)
+    {
+        selection = Math.floor(inData.length*Math.random());
+        miniBatch[i] = inData[selection];
+    }
+    inData = miniBatch;
+    */
+
     var copy = M.Pad(M.Clone(inData));
+    
     for(i=0; i<inIterations; i++)
     {
         RBM.CD(inRBM, copy, inCDN, inRate);

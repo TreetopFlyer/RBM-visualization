@@ -188,7 +188,7 @@ td.Output
         $scope.Lerp = Lerp;
         
         $scope.DimentionsIn = undefined;
-        $scope.DimensionsOut = 3;
+        $scope.DimensionsOut = 5;
         $scope.Iterations = 20;
         $scope.IterationsMax = 50;
         
@@ -216,7 +216,7 @@ td.Output
 
         $scope.Train = function()
         {
-            RBM.Train($scope.RBM, $scope.Data, 1000, 1, 0.01);
+            RBM.Train($scope.RBM, $scope.Data, 1000, 1, 0.0001);
             $scope.Update();
         };
 

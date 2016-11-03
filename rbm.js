@@ -83,7 +83,7 @@ RBM.Noise = {
         for(i=0; i<inData.length; i++)
         {
             /* [center coords], radius, pinch, count */
-            inData[i] = M.Circle(inData[i], 0.1, 0.2, 1)[0];
+            inData[i] = M.Circle(inData[i], 0.2, 0.2, 1)[0];
         }
         return inData;
     }

@@ -144,19 +144,43 @@ angular.module("DatApp", ["ngCanvas"])
         );
     };
 
+    $scope.SubtractAverage = function(inTrainingSet)
+    {
+        console.log("subtract");
+        var i;
+        var sum = V.Scale(inTrainingSet[0], 0);
+        var average;
+        for(i=0; i<inTrainingSet.length; i++)
+        {
+            sum = V.Add(sum, inTrainingSet[i]);
+        }
+        average = V.Scale(sum, 1/inTrainingSet.length);
+        for(i=0; i<inTrainingSet.length; i++)
+        {
+            inTrainingSet[i] = V.Subtract(inTrainingSet[i], average*0.2);
+        }
+    };
+
      /*
      \  Update canvases
     */
     $scope.Redraw = function()
     {
-        var i;
+        var i, j;
         var extract;
 
         //run the RBM weight vectors through a sigmoid and rasterize them
-        extract = M.Unpad(M.Sigmoid(M.Clone($scope.RBM.MatrixForward)));
+        extract = (M.Clone($scope.RBM.MatrixForward));
+        var row;
         for(i=0; i<extract.length; i++)
         {
-            $scope.ImagesMatrix[i] = Bytes.VectorToBytes(extract[i], $scope.Cuts.Size[0], $scope.Cuts.Size[1]);
+            row = extract[i];
+            var last = row[row.length-1];
+            for(j=0; j<row.length; j++)
+            {
+                row[j] += last*1;
+            }
+            $scope.ImagesMatrix[i] = Bytes.VectorToBytes(M.Sigmoid([row])[0], $scope.Cuts.Size[0], $scope.Cuts.Size[1]);
         }
 
         //run the training set through the RBM to see the reconstructions

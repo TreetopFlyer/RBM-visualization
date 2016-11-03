@@ -50,7 +50,7 @@ angular.module("ngCanvas", [])
         out = [];
         for(i=0; i<inBytes.data.length; i+=4)
         {
-            out.push( inBytes.data[i]/255 );
+            out.push( (inBytes.data[i]/255));
         }
         return out;
     };

@@ -64,29 +64,22 @@
             <div class="row">
                 <dl>
                     <dt><h3>Matrix Weights</h3></dt>
-                    <dd ng-repeat="image in ImagesMatrix">
-                        <canvas ng-canvas ng-draw-bytes="image"></canvas>
+                    <dd ng-repeat="vector in OutputWeights">
+                        <canvas ng-draw-vector="vector" ng-draw-size="Cuts.Size"></canvas>
                     </dd>
                 </dl>
             </div>
             <div class="row">
-                <canvas ng-canvas ng-load="Cuts.Image" ng-onload="Recut" ng-show="false"></canvas>
                 <dl>
                     <dt><h3>Training Data</h3></dt>
-                    <dd ng-repeat="image in ImagesSlices">
-                        <canvas ng-canvas ng-draw-bytes="image"></canvas>
-                    </dd>
-                </dl>
-                <dl>
-                    <dt><h3>Deep Labels</h3></dt>
-                    <dd ng-repeat="label in otherLabels">
-                        <div ng-repeat="component in label track by $index" style="width:100%; height:10px; width:{{component*100}}%; background:#000;"></div>
+                    <dd ng-repeat="vector in SetTraining">
+                        <canvas ng-draw-vector="vector" ng-draw-size="Cuts.Size"></canvas>
                     </dd>
                 </dl>
                 <dl>
                     <dt><h3>Reconstructions</h3></dt>
-                    <dd ng-repeat="image in ImagesLabels">
-                        <canvas ng-canvas ng-draw-bytes="image"></canvas>
+                    <dd ng-repeat="vector in OutputFabrications">
+                        <canvas ng-draw-vector="vector" ng-draw-size="Cuts.Size"></canvas>
                     </dd>
                 </dl>
             </div>
@@ -94,53 +87,29 @@
         </div>
 <script>
 angular.module("DatApp", ["ngCanvas"])
-.controller("DatAppController", ["$scope", "Bytes", function($scope, Bytes)
+.controller("DatAppController", ["$scope", "Bytes", "CutUp", function($scope, Bytes, CutUp)
 {
-     /*
-     \  Slice smaller training samples from a larger image
-    */
+
     $scope.Cuts = {
         Image: "raster/manyDigits3.png",
         Size: [20, 20],
         Gap: [0, 0]
-    }
-    $scope.Recut = function(inBytes, inContext, inCanvas) //when the image data from the canvas is available, make the cuts
-    {
-        var x, y, b;
-        for(y=0; y<(inCanvas.height); y+=($scope.Cuts.Size[1]+$scope.Cuts.Gap[1]) )
-        {
-            for(x=0; x<(inCanvas.width ); x+=($scope.Cuts.Size[0]+$scope.Cuts.Gap[0]))
-            {
-                if(x + $scope.Cuts.Size[0] > inCanvas.width || y + $scope.Cuts.Size[1] > inCanvas.height)
-                    continue;
-
-                b = inContext.getImageData(x, y, $scope.Cuts.Size[0], $scope.Cuts.Size[1]);
-                $scope.ImagesSlices.push(b); //create a display of the slice...
-                $scope.SetTraining.push(Bytes.BytesToVector(b)); //...and a vector version for training
-            }
-        }
     };
-
-     /*
-     \  RBM setup
-    */
+    $scope.Training = {
+        Iterations: 100,
+        Rate: 0.001,
+        CDn:1
+    };
+    
     $scope.Rebuild = function()
     {
-        $scope.RBM = RBM.Create($scope.Cuts.Size[0]*$scope.Cuts.Size[1], 30);
+        $scope.RBM = RBM.Create($scope.Cuts.Size[0]*$scope.Cuts.Size[1], 14);
         $scope.RBM.NoiseHidden = RBM.Noise.None;
         $scope.RBM.NoiseVisible = RBM.Noise.None;
         $scope.RBM.DeformHidden = RBM.Deform.Sigmoid;
         $scope.RBM.DeformVisible = RBM.Deform.Sigmoid;
     };
 
-     /*
-     \  RBM Training
-    */
-    $scope.Training = {
-        Iterations: 100,
-        Rate: 0.001,
-        CDn:1
-    };
     $scope.Train = function()
     {
         RBM.Train(
@@ -152,60 +121,27 @@ angular.module("DatApp", ["ngCanvas"])
         );
     };
 
-    var otherData;
-    $scope.otherLabels;
-    $scope.Data2 = function()
-    {
-        $scope.RBM2 = RBM.Create(30, 12);
-        otherData = RBM.Label($scope.RBM, $scope.SetTraining, 1);
-        console.log(otherData);
-    }
-    $scope.Train2 = function()
-    {
-        RBM.Train(
-            $scope.RBM2,
-            otherData,
-            $scope.Training.Iterations, //for this many interations
-            $scope.Training.CDn, //using this CDn
-            $scope.Training.Rate //at this learning rate
-        );
-        $scope.otherLabels = RBM.Label($scope.RBM2, otherData, 1)
-        console.log($scope.otherLabels);
-    }
 
-     /*
-     \  Update canvases
-    */
     $scope.Redraw = function()
     {
-        var i;
-        var extract;
-
-        //run the RBM weight vectors through a sigmoid and rasterize them
-        extract = M.Unpad(M.Sigmoid(M.Clone($scope.RBM.MatrixForward)));
-        for(i=0; i<extract.length; i++)
-        {
-            $scope.ImagesMatrix[i] = Bytes.VectorToBytes(extract[i], $scope.Cuts.Size[0], $scope.Cuts.Size[1]);
-        }
-
-        //run the training set through the RBM to see the reconstructions
-        extract = RBM.Fabricate($scope.RBM, $scope.SetTraining, 1);
-        for(i=0; i<extract.length; i++)
-        {
-            $scope.ImagesLabels[i] = Bytes.VectorToBytes(extract[i], $scope.Cuts.Size[0], $scope.Cuts.Size[1]);
-        }
+        $scope.OutputWeights = M.Sigmoid(M.Unpad(M.Clone($scope.RBM.MatrixForward)));
+        $scope.OutputFabrications = RBM.Fabricate($scope.RBM, $scope.SetTraining, 2);
     };
 
-     /*
-     \   Init
-    */
+
     $scope.SetTraining = [];
     $scope.SetLabels = [];
-    $scope.ImagesSlices = [];
-    $scope.ImagesMatrix = [];
-    $scope.ImagesLabels = [];
+    $scope.OutputWeights = [];
+    $scope.OutputFabrications = [];
     $scope.Rebuild();
+
+    CutUp($scope.Cuts.Image, $scope.Cuts.Size, $scope.Cuts.Gap, function(inSlices)
+    {
+        $scope.SetTraining = inSlices;
+        $scope.$apply();
+    });
 }]);
+
 </script>
 	</body>
 </html>

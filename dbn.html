@@ -50,7 +50,6 @@
                     <canvas ng-draw-vector="vector" ng-draw-size="Cuts.Size"></canvas>
                 </dd>
             </dl>
-
             <div ng-repeat="layer in Layers track by $index">
                 <h2>Layer {{$index}}</h2>
                 <div class="row">
@@ -86,6 +85,12 @@
                     </dl>
                 </div>
             </div>
+            <dl>
+                <dt><h3>Label Reconstructions</h3></dt>
+                <dd ng-repeat="vector in Layers[2].Output.Fabrications">
+                    <canvas ng-draw-vector="vector" ng-draw-size="[1, Layers[2].Config.Size.In]"></canvas>
+                </dd>
+            </dl>
         </div>
 <script>
 angular.module("DatApp", ["ngCanvas"])
@@ -105,7 +110,7 @@ angular.module("DatApp", ["ngCanvas"])
                 Deform: RBM.Deform.Sigmoid,
             },
             Hidden:{
-                Noise: RBM.Noise.Gaussian,
+                Noise: RBM.Noise.Bernoulli,
                 Deform: RBM.Deform.Sigmoid,
             }
         };
@@ -159,12 +164,12 @@ angular.module("DatApp", ["ngCanvas"])
     };
 
     $scope.Data = [];
+    $scope.Labels = [];
 
     $scope.Layers = [];
-    $scope.Layers[0] = Layer(400, 40);
-    $scope.Layers[1] = Layer(40, 30);
-    $scope.Layers[2] = Layer(30, 10);
-    $scope.Layers[3] = Layer(10, 10);
+    $scope.Layers[0] = Layer(400, 20);
+    $scope.Layers[1] = Layer(20, 10);
+    $scope.Layers[2] = Layer(20, 10);
     
 
     $scope.PrepLayer = function(inIndex)
@@ -175,13 +180,42 @@ angular.module("DatApp", ["ngCanvas"])
         }
         else
         {
-            $scope.Layers[inIndex].Input.Data = $scope.Layers[inIndex-1].Output.Labels;
+            if(inIndex == $scope.Layers.length-1)
+            {
+                for(var i=0; i<$scope.Data.length; i++)
+                {
+                    $scope.Layers[inIndex].Input.Data[i] = $scope.Layers[inIndex-1].Output.Labels[i].concat($scope.Labels[i]);
+                }
+            }
+            else
+            {
+                $scope.Layers[inIndex].Input.Data = $scope.Layers[inIndex-1].Output.Labels;
+            }
         }
+
+        
     };
 
     CutUp($scope.Cuts.Image, $scope.Cuts.Size, $scope.Cuts.Gap, function(inSlices)
     {
         $scope.Data = inSlices;
+
+        var classes = 10;
+        var examples = 14;
+        var set;
+        var i, j;
+        var label;
+        for(var i=0; i<inSlices.length; i++)
+        {
+            label = [];
+            set = Math.floor(i/examples);
+            for(j=0; j<classes; j++)
+            {
+                label[j] = 0;
+            }
+            label[set] = 1;
+            $scope.Labels.push(label);
+        }
         $scope.$apply();
     });
 

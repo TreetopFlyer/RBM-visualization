@@ -29,7 +29,7 @@
             dd
             {
                 float:left;
-                width:50px;
+                width:20px;
                 border:1px solid #00f;
                 margin:5px;
                 background:#00f;
@@ -46,42 +46,45 @@
 
             <dl>
                 <dt><h3>Training Data</h3></dt>
-                <dd ng-repeat="vector in Layer.Input.Data">
+                <dd ng-repeat="vector in Layers[0].Input.Data">
                     <canvas ng-draw-vector="vector" ng-draw-size="Cuts.Size"></canvas>
                 </dd>
             </dl>
 
-            <div class="row">
-                <h3>RBM Training</h3>
-                <form class="form-inline">
-                    <div class="form-group">
-                        <div class="input-group">
-                            <div class="input-group-addon">Iterations</div>
-                            <input type="number" class="form-control" ng-model="Layer.Training.Iterations" min="0" max="1000" step="100">
-                            <div class="input-group-addon">Rate</div>
-                            <input type="number" class="form-control" ng-model="Layer.Training.Rate" min="0" step="0.0001">
-                            <div class="input-group-addon">CD-n</div>
-                            <input type="number" class="form-control" ng-model="Layer.Training.CDn" min="1">
+            <div ng-repeat="layer in Layers track by $index">
+                <h2>Layer {{$index}}</h2>
+                <div class="row">
+                    <h3>RBM Training</h3>
+                    <form class="form-inline">
+                        <div class="form-group">
+                            <div class="input-group">
+                                <div class="input-group-addon">Iterations</div>
+                                <input type="number" class="form-control" ng-model="layer.Training.Iterations" min="0" max="1000" step="100">
+                                <div class="input-group-addon">Rate</div>
+                                <input type="number" class="form-control" ng-model="layer.Training.Rate" min="0" step="0.0001">
+                                <div class="input-group-addon">CD-n</div>
+                                <input type="number" class="form-control" ng-model="layer.Training.CDn" min="1">
+                            </div>
                         </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary" ng-click="Layer.Train();">Train/Continue Training</button>
-                </form>
-            </div>
-            <div class="row">
-                <dl>
-                    <dt><h3>Matrix Weights</h3></dt>
-                    <dd ng-repeat="vector in Layer.Output.Weights">
-                        <canvas ng-draw-vector="vector" ng-draw-size="Cuts.Size"></canvas>
-                    </dd>
-                </dl>
-            </div>
-            <div class="row">
-                <dl>
-                    <dt><h3>Reconstructions</h3></dt>
-                    <dd ng-repeat="vector in Layer.Output.Labels">
-                        <canvas ng-draw-vector="vector" ng-draw-size="Cuts.Size"></canvas>
-                    </dd>
-                </dl>
+                        <button type="submit" class="btn btn-primary" ng-click="PrepLayer($index); layer.Train();">Train/Continue Training</button>
+                    </form>
+                </div>
+                <div class="row">
+                    <dl>
+                        <dt><h3>Matrix Weights</h3></dt>
+                        <dd ng-repeat="vector in layer.Output.Weights">
+                            <canvas ng-draw-vector="vector" ng-draw-size="Cuts.Size"></canvas>
+                        </dd>
+                    </dl>
+                </div>
+                <div class="row">
+                    <dl>
+                        <dt><h3>Reconstructions</h3></dt>
+                        <dd ng-repeat="vector in layer.Output.Labels">
+                            <canvas ng-draw-vector="vector" ng-draw-size="[1, layer.Config.Size.Out]"></canvas>
+                        </dd>
+                    </dl>
+                </div>
             </div>
         </div>
 <script>
@@ -98,11 +101,11 @@ angular.module("DatApp", ["ngCanvas"])
                 Out: inSizeOut,
             },
             Visible:{
-                Noise: RBM.Noise.Bernoulli,
+                Noise: RBM.Noise.Gaussian,
                 Deform: RBM.Deform.Sigmoid,
             },
             Hidden:{
-                Noise: RBM.Noise.Bernoulli,
+                Noise: RBM.Noise.Gaussian,
                 Deform: RBM.Deform.Sigmoid,
             }
         };
@@ -155,13 +158,30 @@ angular.module("DatApp", ["ngCanvas"])
         Gap: [0, 0]
     };
 
+    $scope.Data = [];
 
     $scope.Layers = [];
-    $scope.Layer = Layer(400, 20);
+    $scope.Layers[0] = Layer(400, 40);
+    $scope.Layers[1] = Layer(40, 30);
+    $scope.Layers[2] = Layer(30, 10);
+    $scope.Layers[3] = Layer(10, 10);
+    
+
+    $scope.PrepLayer = function(inIndex)
+    {
+        if(inIndex === 0)
+        {
+            $scope.Layers[inIndex].Input.Data = $scope.Data;
+        }
+        else
+        {
+            $scope.Layers[inIndex].Input.Data = $scope.Layers[inIndex-1].Output.Labels;
+        }
+    };
 
     CutUp($scope.Cuts.Image, $scope.Cuts.Size, $scope.Cuts.Gap, function(inSlices)
     {
-        $scope.Layer.Input.Data = inSlices;
+        $scope.Data = inSlices;
         $scope.$apply();
     });
 

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+	<head>
+        <!-- 3rd party code -->
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"></link>
+
+        <!-- custom code -->
+		<script src="//treetopflyer.github.com/vcore/lib.js"></script>
+        <script src="rbm.js"></script>
+        <script src="ngCanvas.js"></script>
+        
+        <style>
+            *
+            {
+                margin:0;
+                padding:0;
+                border:0;
+                font-family:Arial, Helvetica, sans-serif;
+            }
+            body
+            {
+                background:#ddd;
+            }
+            dl
+            {
+                overflow:hidden;
+            }
+            dd
+            {
+                float:left;
+                width:20px;
+                border:1px solid #00f;
+                margin:5px;
+                background:#00f;
+            }
+            dd canvas
+            {
+                width:100%;
+                height:auto;
+            }
+        </style>
+	</head>
+	<body>
+        <div class="container" ng-app="DatApp" ng-controller="DatAppController">
+
+            <dl>
+                <dt><h3>Training Data</h3></dt>
+                <dd ng-repeat="vector in Layers[0].Input.Data">
+                    <canvas ng-draw-vector="vector" ng-draw-size="Cuts.Size"></canvas>
+                </dd>
+            </dl>
+            <div ng-repeat="layer in Layers track by $index">
+                <h2>Layer {{$index}}</h2>
+                <div class="row">
+                    <h3>RBM Training</h3>
+                    <form class="form-inline">
+                        <div class="form-group">
+                            <div class="input-group">
+                                <div class="input-group-addon">Iterations</div>
+                                <input type="number" class="form-control" ng-model="layer.Training.Iterations" min="0" max="1000" step="100">
+                                <div class="input-group-addon">Rate</div>
+                                <input type="number" class="form-control" ng-model="layer.Training.Rate" min="0" step="0.0001">
+                                <div class="input-group-addon">CD-n</div>
+                                <input type="number" class="form-control" ng-model="layer.Training.CDn" min="1">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" ng-click="PrepLayer($index); layer.Train();">Train/Continue Training</button>
+                    </form>
+                </div>
+                <div class="row">
+                    <dl>
+                        <dt><h3>Matrix Weights</h3></dt>
+                        <dd ng-repeat="vector in layer.Output.Weights">
+                            <canvas ng-draw-vector="vector" ng-draw-size="Cuts.Size"></canvas>
+                        </dd>
+                    </dl>
+                </div>
+                <div class="row">
+                    <dl>
+                        <dt><h3>Reconstructions</h3></dt>
+                        <dd ng-repeat="vector in layer.Output.Labels">
+                            <canvas ng-draw-vector="vector" ng-draw-size="[1, layer.Config.Size.Out]"></canvas>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+            <dl>
+                <dt><h3>Label Reconstructions</h3></dt>
+                <dd ng-repeat="vector in Layers[2].Output.Fabrications">
+                    <canvas ng-draw-vector="vector" ng-draw-size="[1, Layers[2].Config.Size.In]"></canvas>
+                </dd>
+            </dl>
+        </div>
+<script>
+angular.module("DatApp", ["ngCanvas"])
+.factory("Layer", [function()
+{
+    return function(inSizeIn, inSizeOut)
+    {
+        var obj = {};
+
+        obj.Config = {
+            Size:{
+                In: inSizeIn,
+                Out: inSizeOut,
+            },
+            Visible:{
+                Noise: RBM.Noise.Gaussian,
+                Deform: RBM.Deform.Sigmoid,
+            },
+            Hidden:{
+                Noise: RBM.Noise.Bernoulli,
+                Deform: RBM.Deform.Sigmoid,
+            }
+        };
+        obj.RBM = {};
+        obj.Training = {
+            Iterations: 100,
+            Rate: 0.001,
+            CDn:1
+        },
+        obj.Input = {
+            Data:[],
+            Labels:[],
+        };
+        obj.Output = {
+            Labels : [],
+            Weights : [],
+            Fabrications : []
+        };
+        obj.Build = function()
+        {
+            obj.RBM = RBM.Create(obj.Config.Size.In, obj.Config.Size.Out);
+            obj.RBM.NoiseHidden = obj.Config.Hidden.Noise;
+            obj.RBM.NoiseVisible = obj.Config.Visible.Noise;
+            obj.RBM.DeformHidden = obj.Config.Hidden.Deform;
+            obj.RBM.DeformVisible = obj.Config.Visible.Deform;
+        };
+        obj.Train = function()
+        {
+            RBM.Train(
+                obj.RBM, //train this network
+                obj.Input.Data, //on this data
+                obj.Training.Iterations, //for this many interations
+                obj.Training.CDn, //using this CDn
+                obj.Training.Rate //at this learning rate
+            );
+            obj.Output.Weights = M.Sigmoid(M.Unpad(M.Clone(obj.RBM.MatrixForward)));
+            obj.Output.Fabrications = RBM.Fabricate(obj.RBM, obj.Input.Data, 1);
+            obj.Output.Labels = RBM.Label(obj.RBM, obj.Input.Data, 1);
+        };
+        obj.Build();
+        return obj;
+    }
+}])
+.controller("DatAppController", ["$scope", "Bytes", "CutUp", "Layer", function($scope, Bytes, CutUp, Layer)
+{
+
+    $scope.Cuts = {
+        Image: "raster/manyDigits3.png",
+        Size: [20, 20],
+        Gap: [0, 0]
+    };
+
+    $scope.Data = [];
+    $scope.Labels = [];
+
+    $scope.Layers = [];
+    $scope.Layers[0] = Layer(400, 20);
+    $scope.Layers[1] = Layer(20, 10);
+    $scope.Layers[2] = Layer(20, 10);
+    
+
+    $scope.PrepLayer = function(inIndex)
+    {
+        if(inIndex === 0)
+        {
+            $scope.Layers[inIndex].Input.Data = $scope.Data;
+        }
+        else
+        {
+            if(inIndex == $scope.Layers.length-1)
+            {
+                for(var i=0; i<$scope.Data.length; i++)
+                {
+                    $scope.Layers[inIndex].Input.Data[i] = $scope.Layers[inIndex-1].Output.Labels[i].concat($scope.Labels[i]);
+                }
+            }
+            else
+            {
+                $scope.Layers[inIndex].Input.Data = $scope.Layers[inIndex-1].Output.Labels;
+            }
+        }
+
+        
+    };
+
+    CutUp($scope.Cuts.Image, $scope.Cuts.Size, $scope.Cuts.Gap, function(inSlices)
+    {
+        $scope.Data = inSlices;
+
+        var classes = 10;
+        var examples = 14;
+        var set;
+        var i, j;
+        var label;
+        for(var i=0; i<inSlices.length; i++)
+        {
+            label = [];
+            set = Math.floor(i/examples);
+            for(j=0; j<classes; j++)
+            {
+                label[j] = 0;
+            }
+            label[set] = 1;
+            $scope.Labels.push(label);
+        }
+        $scope.$apply();
+    });
+
+}]);
+
+</script>
+	</body>
+</html>

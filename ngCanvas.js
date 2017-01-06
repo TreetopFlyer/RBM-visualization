@@ -1,5 +1,5 @@
 angular.module("ngCanvas", [])
-.directive("ngCanvas", ["$parse", function($parse)
+.directive("ngDrawVector", ["$parse", "Bytes", function($parse, Bytes)
 {
     var obj = {};
     obj.link = function(inScope, inElement, inAttributes)
@@ -8,37 +8,58 @@ angular.module("ngCanvas", [])
         var context;
         var getterURL;
         var getterWrite;
-        canvas = inElement[0];
-        context = canvas.getContext('2d');
-        context.imageSmoothingEnabled = false;
+        
+        getterBytes = $parse(inAttributes.ngDrawVector)(inScope);
+        getterSize = $parse(inAttributes.ngDrawSize)(inScope);
 
-        getterURL = $parse(inAttributes.ngLoad)(inScope);
-        if(getterURL)
+        if(getterBytes && getterSize)
         {
-            var img;
-            img = new Image();
-            img.onload = function()
-            {
-                canvas.width = img.width;
-                canvas.height = img.height;
-                context.drawImage(img, 0, 0);
+            canvas = inElement[0];
+            context = canvas.getContext('2d');
 
-                setter = $parse(inAttributes.ngOnload);
-                setter(inScope)(context.getImageData(0, 0, canvas.width, canvas.height), context, canvas);
-                inScope.$apply();
-            };
-            img.src = getterURL;
-        }
-
-        getterBytes = $parse(inAttributes.ngDrawBytes)(inScope);
-        if(getterBytes)
-        {
-            canvas.width = getterBytes.width;
-            canvas.height = getterBytes.height;
-            context.putImageData(getterBytes, 0, 0);
+            canvas.width = getterSize[0];
+            canvas.height = getterSize[1];
+            context.putImageData(Bytes.VectorToBytes(getterBytes, getterSize[0], getterSize[1]), 0, 0);
         }
     };
     return obj;
+}])
+.factory("CutUp", ["Bytes", function(Bytes)
+{
+    return function(inURL, inSize, inGap, inDone)
+    {
+        var canvas;
+        var context;
+        var img;
+        var output;
+
+        canvas = document.createElement("canvas");
+        context = canvas.getContext('2d');
+
+        img = new Image();
+        img.onload = function()
+        {
+            output = [];
+            canvas.width = img.width;
+            canvas.height = img.height;
+            context.drawImage(img, 0, 0);
+
+            var x, y, b;
+            for(y=0; y<(canvas.height); y+=(inSize[1]+inGap[1]) )
+            {
+                for(x=0; x<(canvas.width ); x+=(inSize[0]+inGap[0]))
+                {
+                    if(x + inSize[0] > canvas.width || y + inSize[1] > canvas.height)
+                        continue;
+
+                    b = context.getImageData(x, y, inSize[0], inSize[1]);
+                    output.push(Bytes.BytesToVector(b));
+                }
+            }
+            inDone(output);
+        };
+        img.src = inURL;
+    }
 }])
 .factory("Bytes", [function()
 {

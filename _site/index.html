@@ -226,6 +226,7 @@ td
                             </td>
                         </tr>
                     </table>
+                    
                 </div>
             </div>
 
@@ -253,7 +254,7 @@ td
         };
 
         $scope.RBM = RBM.Create(2, 5);
-        $scope.RBM.NoiseHidden = RBM.Noise.None;
+        $scope.RBM.NoiseHidden = RBM.Noise.Gaussian;
         $scope.RBM.NoiseVisible = RBM.Noise.Gaussian;
 
         var plots = [];
@@ -304,7 +305,7 @@ td
         };
         $scope.Train = function()
         {
-            RBM.Train($scope.RBM, $scope.TrainingSet, 100, 1, 0.001);
+            RBM.Train($scope.RBM, $scope.TrainingSet, 100, $scope.Iterations, 0.001);
             $scope.Update();
         };
         

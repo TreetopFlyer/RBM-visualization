@@ -84,6 +84,7 @@ RBM.Noise = {
         {
             /* [center coords], radius, pinch, count */
             inData[i] = M.Circle(inData[i], 0.2, 0.2, 1)[0];
+
         }
         return inData;
     }

@@ -87,6 +87,22 @@ RBM.Noise = {
 
         }
         return inData;
+    },
+    Dropout:function(inData)
+    {
+
+        var i, j;
+        inChance = 0.5;
+        for(i=0; i<inData.length; i++)
+        {
+            for(j=0; j<inData[i].length; j++)
+            {
+                if(Math.random() < inChance)
+                    inData[i][j] = 0;
+            }
+        }
+        return inData;
+
     }
 };
 

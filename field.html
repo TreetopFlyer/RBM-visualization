@@ -276,17 +276,17 @@ td
             $scope.Colors[inColor] = inIndex;
         };
 
-        $scope.RBM = RBM.Create(2, 2);
+        $scope.RBM = RBM.Create(2, 5);
         $scope.RBM.NoiseHidden = RBM.Noise.Gaussian;
-        $scope.RBM.NoiseVisible = RBM.Noise.None;
+        $scope.RBM.NoiseVisible = RBM.Noise.Gaussian;
         $scope.RBM.DeformHidden = RBM.Deform.Sigmoid;
         $scope.RBM.DeformVisible = RBM.Deform.Sigmoid;
 
         var plots = [];
-        plots.push( M.Circle([0.2, 0.2], 0.2, 0.4, 50) );
-        plots.push( M.Circle([0.5, 0.5], 0.2, 0.4, 50) );
-        plots.push( M.Circle([0.8, 0.2], 0.2, 0.4, 50) );
-        plots.push( M.Circle([0.5, 0.8], 0.2, 0.4, 50) );
+        plots.push( M.Circle([0.2, 0.2], 0.5, 0.2, 100) );
+        plots.push( M.Circle([0.5, 0.5], 0.5, 0.1, 100) );
+        plots.push( M.Circle([0.8, 0.2], 0.5, 0.2, 100) );
+        plots.push( M.Circle([0.6, 0.1], 0.5, 0.2, 100) );
 
         $scope.TrainingSet = M.Combine(plots);
         $scope.GridSet = [];

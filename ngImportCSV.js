@@ -60,7 +60,7 @@ angular.module("ngImportCSV", [])
                     }
                     else
                     {
-                        mapped = column.map[original];
+                        mapped = column.map[original]
                     }
                 }
 
@@ -71,6 +71,8 @@ angular.module("ngImportCSV", [])
                     column.min = mapped;
                 if(column.max < mapped)
                     column.max = mapped;
+
+
             }
             state.data.push(row);
         }

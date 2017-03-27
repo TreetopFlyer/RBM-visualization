@@ -79,8 +79,8 @@
                 <div class="row">
                     <dl>
                         <dt><h3>Reconstructions</h3></dt>
-                        <dd ng-repeat="vector in layer.Output.Labels">
-                            <canvas ng-draw-vector="vector" ng-draw-size="[1, layer.Config.Size.Out]"></canvas>
+                        <dd ng-repeat="vector in layer.Output.Fabrications">
+                            <canvas ng-draw-vector="vector" ng-draw-size="[20, 20]"></canvas>
                         </dd>
                     </dl>
                 </div>
@@ -110,7 +110,7 @@ angular.module("DatApp", ["ngCanvas"])
                 Deform: RBM.Deform.Sigmoid,
             },
             Hidden:{
-                Noise: RBM.Noise.Bernoulli,
+                Noise: RBM.Noise.Dropout,
                 Deform: RBM.Deform.Sigmoid,
             }
         };

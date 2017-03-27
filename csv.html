@@ -156,8 +156,9 @@ td.Output
                 <div class="col-xs-6">
                     <input type="file" ng-import-csv="Setup" class="form-control">
                     <button class="btn btn-default" ng-click="Train();">Train</button>
+                    <input type="number" ng-model="Iterations"/>
                     <div class="Slider" ng-drag ng-drag-handler="Update" ng-drag-h="Iterations" ng-drag-h-max="IterationsMax">
-                        <div class="Bar" style="width:{{Lerp.Get(0, Iterations, IterationsMax)*100;}}%;"></div>
+                        <div class="Bar" style="color:#fff; width:{{Lerp.Get(0, Iterations, IterationsMax)*100;}}%;">{{Iterations}}</div>
                     </div>
                 </div>
 
@@ -189,7 +190,7 @@ td.Output
         
         $scope.DimentionsIn = undefined;
         $scope.DimensionsOut = 5;
-        $scope.Iterations = 20;
+        $scope.Iterations = 1;
         $scope.IterationsMax = 50;
         
         $scope.Originals = [];
@@ -198,25 +199,36 @@ td.Output
 
         $scope.Setup = function(inModel)
         {
-            $scope.Originals = inModel.data;
-            $scope.Data = M.GlobalToLocal(inModel.data, M.Bounds(inModel.data));
+            inModel.data.splice(0, 1);
+            $scope.Originals = [];
+            var i;
+            for(i=0; i<inModel.data.length; i++)
+            {
+                if(i % 100 == 0)
+                {
+                    $scope.Originals.push(inModel.data[i]);
+                }
+            }
+            $scope.Data = M.GlobalToLocal($scope.Originals, M.Bounds($scope.Originals));
 
             var i, row;
             for(i=0; i<$scope.Data.length; i++)
             {
                 row = $scope.Data[i];
-                row[0] = 1;
+                row[0] = 0;
+                row[1] = 0;
+                row[2] = 0;
             }
 
             $scope.DimentionsIn = $scope.Data[0].length;
             $scope.RBM = RBM.Create($scope.DimentionsIn, $scope.DimensionsOut);
-            $scope.RBM.NoiseHidden = RBM.Noise.None;
-            $scope.RBM.NoiseVisible = RBM.Noise.None;
+            $scope.RBM.NoiseHidden = RBM.Noise.Gaussian;
+            $scope.RBM.NoiseVisible = RBM.Noise.Gaussian;
         };
 
         $scope.Train = function()
         {
-            RBM.Train($scope.RBM, $scope.Data, 1000, 1, 0.0001);
+            RBM.Train($scope.RBM, $scope.Data, 100, $scope.Iterations, 0.001);
             $scope.Update();
         };
 
